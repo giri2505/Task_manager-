@@ -1,0 +1,741 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+:root { --accent: #178; }
+.app { display: flex; height: 100vh; min-height: 600px; background: var(--color-background-tertiary); }
+.sidebar { width: 200px; min-width: 200px; background: var(--color-background-primary); border-right: 0.5px solid var(--color-border-tertiary); display: flex; flex-direction: column; }
+.logo { padding: 14px 16px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 8px; }
+.logo-icon { width: 26px; height: 26px; border-radius: 6px; background: #1D9E75; display: flex; align-items: center; justify-content: center; }
+.logo-icon svg { width: 14px; height: 14px; }
+.logo-text { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+.nav { flex: 1; padding: 8px; }
+.nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: var(--border-radius-md); cursor: pointer; font-size: 13px; color: var(--color-text-secondary); margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left; }
+.nav-item:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+.nav-item.active { background: var(--color-background-secondary); color: var(--color-text-primary); font-weight: 500; }
+.nav-icon { width: 16px; height: 16px; flex-shrink: 0; }
+.nav-section { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-tertiary); padding: 12px 10px 4px; }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { height: 48px; background: var(--color-background-primary); border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; padding: 0 16px; gap: 12px; }
+.topbar-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+.topbar-tag { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--color-background-success); color: var(--color-text-success); }
+.btn { padding: 6px 14px; border-radius: var(--border-radius-md); font-size: 12px; cursor: pointer; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); font-family: var(--font-sans); }
+.btn:hover { background: var(--color-background-secondary); }
+.btn-primary { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+.btn-primary:hover { background: #178a65; }
+.btn-danger { background: var(--color-background-danger); color: var(--color-text-danger); border-color: var(--color-border-danger); }
+.spacer { flex: 1; }
+.content { flex: 1; overflow-y: auto; padding: 16px; }
+.panel { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; margin-bottom: 12px; }
+.panel-header { padding: 10px 14px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+.panel-body { padding: 14px; }
+.tab-bar { display: flex; gap: 2px; padding: 0 14px; border-bottom: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
+.tab { padding: 8px 14px; font-size: 12px; cursor: pointer; color: var(--color-text-secondary); border-bottom: 2px solid transparent; margin-bottom: -0.5px; background: none; border-top: none; border-left: none; border-right: none; font-family: var(--font-sans); }
+.tab.active { color: #1D9E75; border-bottom-color: #1D9E75; font-weight: 500; }
+.tab:hover { color: var(--color-text-primary); }
+.form-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+.form-label { font-size: 12px; color: var(--color-text-secondary); min-width: 80px; }
+.form-input { flex: 1; height: 34px; padding: 0 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-secondary); color: var(--color-text-primary); font-size: 13px; font-family: var(--font-sans); outline: none; }
+.form-input:focus { border-color: #1D9E75; }
+.select { height: 34px; padding: 0 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-secondary); color: var(--color-text-primary); font-size: 13px; cursor: pointer; font-family: var(--font-sans); }
+.method-badge { padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 500; }
+.GET { background: #EAF3DE; color: #3B6D11; }
+.POST { background: #E6F1FB; color: #185FA5; }
+.PUT { background: #FAEEDA; color: #854F0B; }
+.DELETE { background: #FCEBEB; color: #A32D2D; }
+.table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.table th { text-align: left; padding: 6px 10px; color: var(--color-text-secondary); font-weight: 500; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.table td { padding: 8px 10px; border-bottom: 0.5px solid var(--color-border-tertiary); color: var(--color-text-primary); }
+.table tr:hover td { background: var(--color-background-secondary); }
+.table tr:last-child td { border-bottom: none; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.stat { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; }
+.stat-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px; }
+.stat-value { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+.stat-sub { font-size: 11px; color: var(--color-text-success); margin-top: 2px; }
+.stat-sub.danger { color: var(--color-text-danger); }
+.code-area { font-family: var(--font-mono); font-size: 12px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 12px; white-space: pre-wrap; color: var(--color-text-primary); min-height: 80px; line-height: 1.6; }
+.tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; margin-right: 4px; }
+.tag-green { background: var(--color-background-success); color: var(--color-text-success); }
+.tag-red { background: var(--color-background-danger); color: var(--color-text-danger); }
+.tag-gray { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+.tag-blue { background: var(--color-background-info); color: var(--color-text-info); }
+.progress-bar { height: 6px; background: var(--color-background-secondary); border-radius: 99px; overflow: hidden; margin: 4px 0; }
+.progress-fill { height: 100%; border-radius: 99px; background: #1D9E75; transition: width 0.3s; }
+.url-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+.response-area { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); overflow: hidden; }
+.response-header { padding: 8px 12px; background: var(--color-background-secondary); border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--color-text-secondary); }
+.status-200 { color: #3B6D11; font-weight: 500; }
+.page { display: none; }
+.page.active { display: block; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.chip { padding: 4px 10px; border-radius: 99px; font-size: 12px; border: 0.5px solid var(--color-border-secondary); background: none; color: var(--color-text-secondary); cursor: pointer; font-family: var(--font-sans); }
+.chip.active { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+.log-entry { padding: 5px 0; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 12px; font-family: var(--font-mono); display: flex; gap: 10px; }
+.log-time { color: var(--color-text-tertiary); min-width: 70px; }
+.log-ok { color: #3B6D11; }
+.log-fail { color: #A32D2D; }
+.log-info { color: #185FA5; }
+.canvas-wrap { position: relative; height: 140px; }
+.mini-chart { display: flex; align-items: flex-end; gap: 3px; height: 80px; }
+.bar { flex: 1; border-radius: 2px 2px 0 0; background: #1D9E75; opacity: 0.8; min-height: 4px; }
+.bar.fail { background: #E24B4A; }
+.sidebar-footer { padding: 10px; border-top: 0.5px solid var(--color-border-tertiary); }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: #1D9E75; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #fff; font-weight: 500; }
+</style>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="7" cy="7" r="5.5" stroke="white" stroke-width="1.5"/>
+          <path d="M4 7h6M7 4l3 3-3 3" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="logo-text">WebSuite Pro</span>
+    </div>
+    <div class="nav">
+      <div class="nav-section">Tools</div>
+      <button class="nav-item active" onclick="showPage('api')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="5" width="12" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 8h6M8 6.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        API Tester
+      </button>
+      <button class="nav-item" onclick="showPage('scraper')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M3 4h10M3 8h7M3 12h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Scraper
+      </button>
+      <button class="nav-item" onclick="showPage('load')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 12 L5 7 L8 9 L11 4 L14 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        Load Tester
+      </button>
+      <button class="nav-item" onclick="showPage('pentest')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 2L13 5v4c0 3-2.5 4.5-5 5-2.5-.5-5-2-5-5V5L8 2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        Pentest
+      </button>
+      <div class="nav-section">Config</div>
+      <button class="nav-item" onclick="showPage('configs')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="3" y="3" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="3" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="3" y="9" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>
+        Configs
+      </button>
+      <button class="nav-item" onclick="showPage('wordlist')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M4 4h8M4 7h8M4 10h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.2"/></svg>
+        Wordlists
+      </button>
+      <button class="nav-item" onclick="showPage('logs')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M3 3h10v2H3zM3 7h10v2H3zM3 11h6v2H3z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>
+        Logs
+      </button>
+    </div>
+    <div class="sidebar-footer">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="avatar">WS</div>
+        <div>
+          <div style="font-size:12px;font-weight:500;color:var(--color-text-primary);">Workspace</div>
+          <div style="font-size:11px;color:var(--color-text-secondary);">Free Plan</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- API TESTER -->
+    <div id="page-api" class="page active">
+      <div class="topbar">
+        <span class="topbar-title">API Tester</span>
+        <span class="topbar-tag">HTTP Client</span>
+        <div class="spacer"></div>
+        <button class="btn" onclick="saveRequest()">Save</button>
+        <button class="btn btn-primary" onclick="sendRequest()">Send</button>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <div class="panel-body">
+            <div class="url-bar">
+              <select class="select" id="method" style="width:90px;">
+                <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
+              </select>
+              <input class="form-input" id="url-input" placeholder="https://api.example.com/endpoint" value="https://jsonplaceholder.typicode.com/posts/1">
+              <button class="btn btn-primary" onclick="sendRequest()" style="white-space:nowrap;">Send Request</button>
+            </div>
+          </div>
+          <div class="tab-bar">
+            <button class="tab active" onclick="apiTab(this,'req-params')">Params</button>
+            <button class="tab" onclick="apiTab(this,'req-headers')">Headers</button>
+            <button class="tab" onclick="apiTab(this,'req-body')">Body</button>
+            <button class="tab" onclick="apiTab(this,'req-auth')">Auth</button>
+          </div>
+          <div class="panel-body">
+            <div id="req-params">
+              <table class="table" style="margin-bottom:10px;">
+                <thead><tr><th>Key</th><th>Value</th><th>Enabled</th></tr></thead>
+                <tbody id="params-tbody">
+                  <tr><td><input class="form-input" placeholder="param" style="width:100%;height:28px;font-size:12px;"></td><td><input class="form-input" placeholder="value" style="width:100%;height:28px;font-size:12px;"></td><td><input type="checkbox" checked></td></tr>
+                </tbody>
+              </table>
+              <button class="btn" onclick="addParamRow()" style="font-size:12px;">+ Add param</button>
+            </div>
+            <div id="req-headers" style="display:none;">
+              <table class="table" style="margin-bottom:10px;">
+                <thead><tr><th>Header</th><th>Value</th></tr></thead>
+                <tbody>
+                  <tr><td><input class="form-input" value="Accept" style="width:100%;height:28px;font-size:12px;"></td><td><input class="form-input" value="application/json" style="width:100%;height:28px;font-size:12px;"></td></tr>
+                  <tr><td><input class="form-input" value="Content-Type" style="width:100%;height:28px;font-size:12px;"></td><td><input class="form-input" value="application/json" style="width:100%;height:28px;font-size:12px;"></td></tr>
+                </tbody>
+              </table>
+              <button class="btn" style="font-size:12px;">+ Add header</button>
+            </div>
+            <div id="req-body" style="display:none;">
+              <select class="select" style="margin-bottom:8px;"><option>JSON</option><option>Form Data</option><option>Raw</option><option>Binary</option></select>
+              <textarea class="form-input" style="height:80px;resize:vertical;width:100%;padding:8px;" placeholder='{"key": "value"}'></textarea>
+            </div>
+            <div id="req-auth" style="display:none;">
+              <div class="form-row">
+                <span class="form-label">Type</span>
+                <select class="select"><option>No Auth</option><option>Bearer Token</option><option>Basic Auth</option><option>API Key</option><option>OAuth 2.0</option></select>
+              </div>
+              <div class="form-row">
+                <span class="form-label">Token</span>
+                <input class="form-input" placeholder="Enter bearer token..." type="password">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            Response
+            <span id="res-status" class="tag tag-gray" style="margin-left:4px;">—</span>
+            <span id="res-time" style="font-size:11px;color:var(--color-text-secondary);margin-left:4px;"></span>
+            <div class="spacer"></div>
+            <button class="btn" style="font-size:11px;" onclick="copyResponse()">Copy</button>
+          </div>
+          <div class="tab-bar">
+            <button class="tab active" onclick="apiTab(this,'res-body')">Body</button>
+            <button class="tab" onclick="apiTab(this,'res-headers-tab')">Headers</button>
+          </div>
+          <div class="panel-body">
+            <div id="res-body">
+              <div id="response-content" class="code-area" style="min-height:120px;">Click "Send Request" to see the response here.</div>
+            </div>
+            <div id="res-headers-tab" style="display:none;">
+              <div id="response-headers" class="code-area" style="min-height:120px;">Response headers will appear here.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">Saved requests</div>
+          <div class="panel-body">
+            <table class="table">
+              <thead><tr><th>Name</th><th>Method</th><th>URL</th><th>Last run</th></tr></thead>
+              <tbody id="saved-requests">
+                <tr><td>Get Post</td><td><span class="method-badge GET">GET</span></td><td style="color:var(--color-text-secondary);font-size:11px;">jsonplaceholder.typicode.com/posts/1</td><td style="color:var(--color-text-secondary);">2m ago</td></tr>
+                <tr><td>Health Check</td><td><span class="method-badge GET">GET</span></td><td style="color:var(--color-text-secondary);font-size:11px;">api.example.com/health</td><td style="color:var(--color-text-secondary);">1h ago</td></tr>
+                <tr><td>Create User</td><td><span class="method-badge POST">POST</span></td><td style="color:var(--color-text-secondary);font-size:11px;">api.example.com/users</td><td style="color:var(--color-text-secondary);">3h ago</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCRAPER -->
+    <div id="page-scraper" class="page">
+      <div class="topbar">
+        <span class="topbar-title">Web Scraper</span>
+        <span class="topbar-tag">Data Extraction</span>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" id="scrape-btn" onclick="runScraper()">Run Scraper</button>
+      </div>
+      <div class="content">
+        <div class="grid2">
+          <div class="panel">
+            <div class="panel-header">Target Configuration</div>
+            <div class="panel-body">
+              <div class="form-row"><span class="form-label">URL</span><input class="form-input" id="scrape-url" value="https://example.com" placeholder="https://..."></div>
+              <div class="form-row"><span class="form-label">Selector</span><input class="form-input" id="scrape-selector" value="h1, p, a" placeholder="CSS selector"></div>
+              <div class="form-row"><span class="form-label">Depth</span>
+                <select class="select"><option>1 (page only)</option><option>2</option><option>3</option></select>
+              </div>
+              <div class="form-row"><span class="form-label">Rate limit</span>
+                <select class="select"><option>1 req/s</option><option>2 req/s</option><option>5 req/s</option></select>
+              </div>
+              <div class="form-row"><span class="form-label">Delay</span>
+                <input class="form-input" value="1000" placeholder="ms between requests">
+              </div>
+              <div class="form-row"><span class="form-label">User agent</span>
+                <select class="select"><option>Chrome 120</option><option>Firefox 121</option><option>Safari 17</option><option>Custom</option></select>
+              </div>
+              <div class="form-row"><span class="form-label">Proxy</span>
+                <input class="form-input" placeholder="http://proxy:port (optional)">
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">Extraction Rules</div>
+            <div class="panel-body">
+              <div style="margin-bottom:8px;font-size:12px;color:var(--color-text-secondary);">Extract fields</div>
+              <table class="table" style="margin-bottom:10px;">
+                <thead><tr><th>Field name</th><th>Selector</th><th>Attribute</th></tr></thead>
+                <tbody>
+                  <tr><td><input class="form-input" value="title" style="height:28px;font-size:12px;width:100%;"></td><td><input class="form-input" value="h1" style="height:28px;font-size:12px;width:100%;"></td><td><select class="select" style="height:28px;font-size:12px;"><option>text</option><option>href</option><option>src</option></select></td></tr>
+                  <tr><td><input class="form-input" value="links" style="height:28px;font-size:12px;width:100%;"></td><td><input class="form-input" value="a" style="height:28px;font-size:12px;width:100%;"></td><td><select class="select" style="height:28px;font-size:12px;"><option>href</option><option>text</option></select></td></tr>
+                </tbody>
+              </table>
+              <button class="btn" style="font-size:12px;">+ Add field</button>
+              <div style="margin-top:12px;">
+                <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:6px;">Output format</div>
+                <div class="chip-row">
+                  <button class="chip active">JSON</button>
+                  <button class="chip">CSV</button>
+                  <button class="chip">XML</button>
+                  <button class="chip">Markdown</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">Results <span id="scrape-count" class="tag tag-gray" style="margin-left:4px;">0 items</span>
+            <div class="spacer"></div>
+            <button class="btn" style="font-size:12px;" onclick="exportData()">Export</button>
+          </div>
+          <div class="panel-body">
+            <div id="scrape-results" class="code-area" style="min-height:100px;">Run the scraper to see extracted data here.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOAD TESTER -->
+    <div id="page-load" class="page">
+      <div class="topbar">
+        <span class="topbar-title">Load Tester</span>
+        <span class="topbar-tag">Performance</span>
+        <div class="spacer"></div>
+        <button class="btn btn-danger" id="load-stop" style="display:none;" onclick="stopLoad()">Stop</button>
+        <button class="btn btn-primary" id="load-start" onclick="startLoad()">Start Test</button>
+      </div>
+      <div class="content">
+        <div class="grid2">
+          <div class="panel">
+            <div class="panel-header">Test Configuration</div>
+            <div class="panel-body">
+              <div class="form-row"><span class="form-label">Target URL</span><input class="form-input" id="load-url" value="https://httpbin.org/get"></div>
+              <div class="form-row"><span class="form-label">Method</span><select class="select"><option>GET</option><option>POST</option></select></div>
+              <div class="form-row"><span class="form-label">Virtual users</span><input class="form-input" id="load-vu" type="number" value="10" min="1" max="500"></div>
+              <div class="form-row"><span class="form-label">Duration (s)</span><input class="form-input" id="load-dur" type="number" value="30" min="5"></div>
+              <div class="form-row"><span class="form-label">Ramp up (s)</span><input class="form-input" value="5" type="number" min="0"></div>
+              <div class="form-row"><span class="form-label">Max RPS</span><input class="form-input" value="100" type="number"></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">Live Stats</div>
+            <div class="panel-body">
+              <div class="grid2">
+                <div class="stat"><div class="stat-label">Requests</div><div class="stat-value" id="l-reqs">0</div></div>
+                <div class="stat"><div class="stat-label">RPS</div><div class="stat-value" id="l-rps">0</div></div>
+                <div class="stat"><div class="stat-label">Avg latency</div><div class="stat-value" id="l-lat">0ms</div></div>
+                <div class="stat"><div class="stat-label">Errors</div><div class="stat-value" id="l-err">0</div><div class="stat-sub danger" id="l-err-pct">0%</div></div>
+              </div>
+              <div style="margin-top:10px;">
+                <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px;">P95 latency</div>
+                <div class="progress-bar"><div class="progress-fill" id="p95-bar" style="width:0%;background:#185FA5;"></div></div>
+                <div style="font-size:12px;font-weight:500;color:var(--color-text-primary);" id="p95-val">0ms</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">Throughput chart</div>
+          <div class="panel-body">
+            <div class="mini-chart" id="load-chart" style="height:100px;align-items:flex-end;"></div>
+            <div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--color-text-secondary);">
+              <span><span style="display:inline-block;width:10px;height:10px;background:#1D9E75;border-radius:2px;margin-right:4px;"></span>Success</span>
+              <span><span style="display:inline-block;width:10px;height:10px;background:#E24B4A;border-radius:2px;margin-right:4px;"></span>Errors</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PENTEST -->
+    <div id="page-pentest" class="page">
+      <div class="topbar">
+        <span class="topbar-title">Pentest Dashboard</span>
+        <span class="topbar-tag">Authorized only</span>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" onclick="runScan()">Run Scan</button>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <div class="panel-header">Target scope (authorized hosts only)</div>
+          <div class="panel-body">
+            <div class="form-row">
+              <span class="form-label">Target</span>
+              <input class="form-input" value="https://your-authorized-target.com" placeholder="Authorized target URL">
+              <select class="select"><option>Light scan</option><option>Full scan</option><option>Custom</option></select>
+              <button class="btn btn-primary" onclick="runScan()">Scan</button>
+            </div>
+          </div>
+        </div>
+        <div class="grid3">
+          <div class="stat"><div class="stat-label">Endpoints found</div><div class="stat-value" id="ep-count">0</div></div>
+          <div class="stat"><div class="stat-label">Issues found</div><div class="stat-value" id="issue-count">0</div></div>
+          <div class="stat"><div class="stat-label">Scan coverage</div><div class="stat-value" id="scan-cov">0%</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">Findings</div>
+          <div class="tab-bar">
+            <button class="tab active" onclick="apiTab(this,'find-all')">All</button>
+            <button class="tab" onclick="apiTab(this,'find-high')">High</button>
+            <button class="tab" onclick="apiTab(this,'find-med')">Medium</button>
+            <button class="tab" onclick="apiTab(this,'find-info')">Info</button>
+          </div>
+          <div class="panel-body">
+            <div id="find-all">
+              <table class="table" id="findings-table">
+                <thead><tr><th>Severity</th><th>Type</th><th>Endpoint</th><th>Description</th></tr></thead>
+                <tbody><tr><td colspan="4" style="text-align:center;color:var(--color-text-tertiary);font-size:12px;padding:20px;">Run a scan to see findings</td></tr></tbody>
+              </table>
+            </div>
+            <div id="find-high" style="display:none;"></div>
+            <div id="find-med" style="display:none;"></div>
+            <div id="find-info" style="display:none;"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">Request inspector</div>
+          <div class="panel-body">
+            <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:8px;">Replay and modify captured requests for authorized testing</div>
+            <div class="form-row">
+              <select class="select"><option>GET /api/users</option><option>POST /api/login</option><option>GET /admin/panel</option></select>
+              <button class="btn">Replay</button>
+              <button class="btn">Modify</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIGS -->
+    <div id="page-configs" class="page">
+      <div class="topbar">
+        <span class="topbar-title">Config Manager</span>
+        <div class="spacer"></div>
+        <button class="btn">Import</button>
+        <button class="btn btn-primary" onclick="newConfig()">+ New Config</button>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <div class="panel-header">Configs</div>
+          <div class="panel-body">
+            <table class="table">
+              <thead><tr><th>Name</th><th>Type</th><th>Target</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="config-table">
+                <tr><td>API Health Check</td><td><span class="tag tag-blue">API Test</span></td><td>api.example.com</td><td><span class="tag tag-green">Active</span></td><td><button class="btn" style="font-size:11px;padding:2px 8px;">Edit</button></td></tr>
+                <tr><td>Scrape News Feed</td><td><span class="tag tag-gray">Scraper</span></td><td>news.example.com</td><td><span class="tag tag-green">Active</span></td><td><button class="btn" style="font-size:11px;padding:2px 8px;">Edit</button></td></tr>
+                <tr><td>Load Test Suite</td><td><span class="tag tag-blue">Load</span></td><td>app.example.com</td><td><span class="tag tag-gray">Draft</span></td><td><button class="btn" style="font-size:11px;padding:2px 8px;">Edit</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">Config Editor</div>
+          <div class="panel-body">
+            <textarea class="form-input code-area" style="height:160px;resize:vertical;font-family:var(--font-mono);font-size:12px;">{
+  "name": "My Config",
+  "type": "api_test",
+  "target": "https://api.example.com",
+  "requests": [
+    { "method": "GET", "path": "/health", "expect": 200 },
+    { "method": "POST", "path": "/login", "body": {} }
+  ],
+  "rateLimit": "1/s",
+  "timeout": 5000
+}</textarea>
+            <div style="margin-top:8px;display:flex;gap:8px;">
+              <button class="btn">Validate</button>
+              <button class="btn btn-primary">Save Config</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORDLISTS -->
+    <div id="page-wordlist" class="page">
+      <div class="topbar">
+        <span class="topbar-title">Wordlists & Data</span>
+        <div class="spacer"></div>
+        <button class="btn">Upload</button>
+        <button class="btn btn-primary">+ Generate</button>
+      </div>
+      <div class="content">
+        <div class="grid3">
+          <div class="stat"><div class="stat-label">Total lists</div><div class="stat-value">4</div></div>
+          <div class="stat"><div class="stat-label">Total entries</div><div class="stat-value">12.4k</div></div>
+          <div class="stat"><div class="stat-label">Storage used</div><div class="stat-value">2.1mb</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">Wordlists</div>
+          <div class="panel-body">
+            <table class="table">
+              <thead><tr><th>Name</th><th>Entries</th><th>Type</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr><td>common-paths.txt</td><td>4,212</td><td><span class="tag tag-gray">Path</span></td><td><button class="btn" style="font-size:11px;padding:2px 8px;">View</button><button class="btn" style="font-size:11px;padding:2px 8px;margin-left:4px;">Use</button></td></tr>
+                <tr><td>api-endpoints.txt</td><td>2,840</td><td><span class="tag tag-blue">API</span></td><td><button class="btn" style="font-size:11px;padding:2px 8px;">View</button><button class="btn" style="font-size:11px;padding:2px 8px;margin-left:4px;">Use</button></td></tr>
+                <tr><td>subdomains.txt</td><td>3,100</td><td><span class="tag tag-gray">DNS</span></td><td><button class="btn" style="font-size:11px;padding:2px 8px;">View</button><button class="btn" style="font-size:11px;padding:2px 8px;margin-left:4px;">Use</button></td></tr>
+                <tr><td>user-agents.txt</td><td>2,280</td><td><span class="tag tag-gray">Header</span></td><td><button class="btn" style="font-size:11px;padding:2px 8px;">View</button><button class="btn" style="font-size:11px;padding:2px 8px;margin-left:4px;">Use</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">Generator</div>
+          <div class="panel-body">
+            <div class="form-row"><span class="form-label">Base word</span><input class="form-input" placeholder="admin, api, user..."></div>
+            <div class="form-row"><span class="form-label">Mutations</span>
+              <div class="chip-row">
+                <button class="chip active">Lowercase</button>
+                <button class="chip active">Uppercase</button>
+                <button class="chip">Numbers suffix</button>
+                <button class="chip">Leet speak</button>
+              </div>
+            </div>
+            <button class="btn btn-primary">Generate list</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGS -->
+    <div id="page-logs" class="page">
+      <div class="topbar">
+        <span class="topbar-title">Activity Logs</span>
+        <div class="spacer"></div>
+        <button class="btn">Clear</button>
+        <button class="btn">Export</button>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <div class="panel-header">Filter</div>
+          <div class="panel-body">
+            <div class="chip-row">
+              <button class="chip active">All</button>
+              <button class="chip">Success</button>
+              <button class="chip">Error</button>
+              <button class="chip">Info</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">Log stream</div>
+          <div class="panel-body" id="log-container">
+            <div class="log-entry"><span class="log-time">09:14:22</span><span class="log-ok">[OK]</span><span>GET https://api.example.com/health → 200 in 142ms</span></div>
+            <div class="log-entry"><span class="log-time">09:14:25</span><span class="log-ok">[OK]</span><span>Scraper: extracted 42 items from example.com</span></div>
+            <div class="log-entry"><span class="log-time">09:14:30</span><span class="log-fail">[ERR]</span><span>GET https://api.example.com/users → 503 in 2004ms</span></div>
+            <div class="log-entry"><span class="log-time">09:14:31</span><span class="log-info">[INFO]</span><span>Load test started: 10 VUs, 30s duration</span></div>
+            <div class="log-entry"><span class="log-time">09:14:45</span><span class="log-ok">[OK]</span><span>Load test complete: 847 req, 28 err (3.3%), avg 214ms</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+function apiTab(btn, targetId) {
+  const panel = btn.closest('.panel') || btn.closest('.main');
+  btn.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const body = btn.closest('.panel').querySelector('.panel-body') || btn.closest('.main');
+  const parent = btn.parentElement.nextElementSibling;
+  parent.querySelectorAll(':scope > div').forEach(d => d.style.display = 'none');
+  const target = document.getElementById(targetId);
+  if (target) target.style.display = 'block';
+}
+
+async function sendRequest() {
+  const url = document.getElementById('url-input').value;
+  const method = document.getElementById('method').value;
+  const resEl = document.getElementById('response-content');
+  const headEl = document.getElementById('response-headers');
+  const statusEl = document.getElementById('res-status');
+  const timeEl = document.getElementById('res-time');
+  resEl.textContent = 'Sending...';
+  statusEl.textContent = '...';
+  statusEl.className = 'tag tag-gray';
+  const t0 = Date.now();
+  try {
+    const res = await fetch(url, { method });
+    const elapsed = Date.now() - t0;
+    const json = await res.json();
+    resEl.textContent = JSON.stringify(json, null, 2);
+    statusEl.textContent = res.status + ' ' + res.statusText;
+    statusEl.className = res.ok ? 'tag tag-green' : 'tag tag-red';
+    timeEl.textContent = elapsed + 'ms';
+    let hText = '';
+    res.headers.forEach((v,k) => hText += k + ': ' + v + '\n');
+    headEl.textContent = hText;
+    addLog('OK', method + ' ' + url + ' → ' + res.status + ' in ' + elapsed + 'ms', 'ok');
+  } catch(e) {
+    resEl.textContent = 'Error: ' + e.message;
+    statusEl.textContent = 'Error';
+    statusEl.className = 'tag tag-red';
+    addLog('ERR', method + ' ' + url + ' → ' + e.message, 'fail');
+  }
+}
+
+function saveRequest() {
+  const url = document.getElementById('url-input').value;
+  const method = document.getElementById('method').value;
+  const tbody = document.getElementById('saved-requests');
+  const tr = document.createElement('tr');
+  const short = url.replace(/https?:\/\//, '').substring(0, 40);
+  tr.innerHTML = '<td>Saved ' + new Date().toLocaleTimeString() + '</td><td><span class="method-badge ' + method + '">' + method + '</span></td><td style="color:var(--color-text-secondary);font-size:11px;">' + short + '</td><td style="color:var(--color-text-secondary);">just now</td>';
+  tbody.insertBefore(tr, tbody.firstChild);
+}
+
+function addParamRow() {
+  const tbody = document.getElementById('params-tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = '<td><input class="form-input" placeholder="key" style="width:100%;height:28px;font-size:12px;"></td><td><input class="form-input" placeholder="value" style="width:100%;height:28px;font-size:12px;"></td><td><input type="checkbox" checked></td>';
+  tbody.appendChild(tr);
+}
+
+function copyResponse() {
+  const text = document.getElementById('response-content').textContent;
+  navigator.clipboard.writeText(text).catch(() => {});
+}
+
+let scraperTimer = null;
+function runScraper() {
+  const url = document.getElementById('scrape-url').value;
+  const sel = document.getElementById('scrape-selector').value;
+  const res = document.getElementById('scrape-results');
+  const count = document.getElementById('scrape-count');
+  res.textContent = 'Scraping ' + url + '...';
+  count.textContent = '...';
+  count.className = 'tag tag-blue';
+  setTimeout(() => {
+    const mock = {
+      url, selector: sel,
+      items: [
+        { title: "Example Domain", tag: "h1", text: "Example Domain" },
+        { title: "Paragraph 1", tag: "p", text: "This domain is for use in illustrative examples." },
+        { title: "Paragraph 2", tag: "p", text: "More information..." },
+        { title: "Link 1", tag: "a", href: "https://www.iana.org/domains/example" }
+      ],
+      timestamp: new Date().toISOString()
+    };
+    res.textContent = JSON.stringify(mock, null, 2);
+    count.textContent = mock.items.length + ' items';
+    count.className = 'tag tag-green';
+    addLog('OK', 'Scraper: extracted ' + mock.items.length + ' items from ' + url, 'ok');
+  }, 1200);
+}
+
+function exportData() {
+  const text = document.getElementById('scrape-results').textContent;
+  const blob = new Blob([text], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'scraped-data.json';
+  a.click();
+}
+
+let loadRunning = false, loadInterval = null, loadTick = 0, totalReqs = 0, totalErr = 0;
+function startLoad() {
+  loadRunning = true;
+  loadTick = 0; totalReqs = 0; totalErr = 0;
+  document.getElementById('load-start').style.display = 'none';
+  document.getElementById('load-stop').style.display = '';
+  document.getElementById('load-chart').innerHTML = '';
+  addLog('INFO', 'Load test started', 'info');
+  const vu = parseInt(document.getElementById('load-vu').value) || 10;
+  loadInterval = setInterval(() => {
+    loadTick++;
+    const rps = Math.round(vu * (0.8 + Math.random() * 0.4));
+    const errs = Math.random() < 0.15 ? Math.ceil(Math.random() * 3) : 0;
+    totalReqs += rps;
+    totalErr += errs;
+    const lat = Math.round(80 + Math.random() * 200);
+    document.getElementById('l-reqs').textContent = totalReqs.toLocaleString();
+    document.getElementById('l-rps').textContent = rps;
+    document.getElementById('l-lat').textContent = lat + 'ms';
+    document.getElementById('l-err').textContent = totalErr;
+    document.getElementById('l-err-pct').textContent = Math.round(totalErr/totalReqs*100) + '%';
+    const p95 = lat + Math.round(Math.random() * 80);
+    document.getElementById('p95-val').textContent = p95 + 'ms';
+    document.getElementById('p95-bar').style.width = Math.min(100, Math.round(p95/5)) + '%';
+    const chart = document.getElementById('load-chart');
+    const maxBars = 40;
+    if (chart.children.length >= maxBars) chart.removeChild(chart.firstChild);
+    const bar = document.createElement('div');
+    bar.className = 'bar' + (errs > 0 ? ' fail' : '');
+    bar.style.height = Math.round(20 + Math.random() * 80) + 'px';
+    chart.appendChild(bar);
+    const dur = parseInt(document.getElementById('load-dur').value) || 30;
+    if (loadTick >= dur) stopLoad();
+  }, 1000);
+}
+
+function stopLoad() {
+  clearInterval(loadInterval);
+  loadRunning = false;
+  document.getElementById('load-start').style.display = '';
+  document.getElementById('load-stop').style.display = 'none';
+  addLog('OK', 'Load test complete: ' + totalReqs + ' req, ' + totalErr + ' err (' + Math.round(totalErr/Math.max(totalReqs,1)*100) + '%), avg latency shown above', 'ok');
+}
+
+const findings = [
+  { sev: 'High', type: 'Sensitive Header Exposure', ep: '/api/users', desc: 'X-Powered-By header reveals backend stack' },
+  { sev: 'Medium', type: 'Missing Rate Limiting', ep: '/api/login', desc: 'No rate limit detected on auth endpoint' },
+  { sev: 'Info', type: 'Server Version', ep: '/', desc: 'Server header discloses version info' },
+  { sev: 'Info', type: 'Open Redirect', ep: '/redirect', desc: 'Potential open redirect parameter found' },
+];
+
+function runScan() {
+  document.getElementById('ep-count').textContent = '...';
+  document.getElementById('issue-count').textContent = '...';
+  document.getElementById('scan-cov').textContent = '...';
+  setTimeout(() => {
+    document.getElementById('ep-count').textContent = '18';
+    document.getElementById('issue-count').textContent = findings.length;
+    document.getElementById('scan-cov').textContent = '84%';
+    const tbody = document.querySelector('#findings-table tbody');
+    tbody.innerHTML = '';
+    findings.forEach(f => {
+      const sevClass = f.sev === 'High' ? 'tag-red' : f.sev === 'Medium' ? 'tag tag-blue' : 'tag-gray';
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td><span class="tag ' + sevClass + '">' + f.sev + '</span></td><td>' + f.type + '</td><td style="font-family:var(--font-mono);font-size:11px;color:var(--color-text-secondary);">' + f.ep + '</td><td style="font-size:12px;color:var(--color-text-secondary);">' + f.desc + '</td>';
+      tbody.appendChild(tr);
+    });
+    addLog('OK', 'Scan complete: ' + findings.length + ' issues found across 18 endpoints', 'ok');
+  }, 1800);
+}
+
+function addLog(level, msg, type) {
+  const container = document.getElementById('log-container');
+  const el = document.createElement('div');
+  el.className = 'log-entry';
+  const now = new Date().toLocaleTimeString('en-GB');
+  el.innerHTML = '<span class="log-time">' + now + '</span><span class="log-' + type + '">[' + level + ']</span><span>' + msg + '</span>';
+  container.insertBefore(el, container.firstChild);
+}
+
+function newConfig() {
+  addLog('INFO', 'New config created', 'info');
+}
+</script>
