@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI — Animated Slides</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#0f0f13;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+
+  /* Darshan-inspired animations */
+  @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.09);}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(40px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-32px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+  @keyframes diagDrift{0%{transform:translate(0,0);}50%{transform:translate(10px,-14px);}100%{transform:translate(0,0);}}
+  @keyframes spinRock{0%{transform:rotate(0);}25%{transform:rotate(10deg);}75%{transform:rotate(-10deg);}100%{transform:rotate(0);}}
+  @keyframes slideOutUp{to{opacity:0;transform:translateY(-30px);}}
+  @keyframes slideOutDown{to{opacity:0;transform:translateY(30px);}}
+
+  .deck{width:100%;max-width:820px;}
+  .slide{display:none;min-height:460px;border-radius:16px;background:#1a1a24;border:1px solid rgba(255,255,255,.08);padding:50px 56px;position:relative;overflow:hidden;flex-direction:column;}
+  .slide.active{display:flex;}
+  .slide.enter-up{animation:fadeUp .55s ease forwards;}
+  .slide.enter-down{animation:fadeDown .55s ease forwards;}
+
+  .deco{position:absolute;border-radius:50%;pointer-events:none;}
+  .deco.pulse{animation:pulse 3.2s ease-in-out infinite;}
+  .deco.diag{animation:diagDrift 4.5s ease-in-out infinite;}
+  .deco.spin{animation:spinRock 2.8s ease-in-out infinite;border-radius:14px;}
+
+  .snum{font-size:12px;color:rgba(255,255,255,.3);position:absolute;top:20px;right:24px;}
+
+  .tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:4px 12px;border-radius:20px;margin-bottom:16px;}
+  .tag-purple{background:#3C3489;color:#AFA9EC;}
+  .tag-teal{background:#085041;color:#5DCAA5;}
+  .tag-coral{background:#712B13;color:#F0997B;}
+  .tag-blue{background:#0C447C;color:#85B7EB;}
+
+  .accent{width:36px;height:3px;border-radius:2px;margin-bottom:20px;}
+
+  h1{font-size:32px;font-weight:600;color:#fff;line-height:1.2;margin-bottom:12px;}
+  p.sub{font-size:15px;color:rgba(255,255,255,.55);line-height:1.65;max-width:500px;}
+
+  /* Stat cards */
+  .srow{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:30px;}
+  .sc{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:16px;}
+  .sv{font-size:26px;font-weight:600;color:#fff;}
+  .sl{font-size:12px;color:rgba(255,255,255,.45);margin-top:4px;}
+
+  /* Card grid */
+  .cgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:26px;}
+  .ic{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:15px;}
+  .ict{font-size:14px;font-weight:600;color:#fff;margin-bottom:5px;}
+  .icb{font-size:13px;color:rgba(255,255,255,.5);line-height:1.5;}
+
+  /* Bar chart */
+  .bsec{margin-top:24px;display:flex;flex-direction:column;gap:13px;}
+  .bl{display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.55);margin-bottom:5px;}
+  .bt{height:8px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden;}
+  .bf{height:100%;border-radius:4px;width:0;transition:width 1.2s cubic-bezier(.4,0,.2,1) .3s;}
+
+  /* Timeline */
+  .tl{margin-top:22px;display:flex;flex-direction:column;}
+  .tli{display:flex;gap:18px;align-items:flex-start;}
+  .tll{display:flex;flex-direction:column;align-items:center;}
+  .tld{width:10px;height:10px;border-radius:50%;background:#7F77DD;margin-top:3px;flex-shrink:0;}
+  .tlln{width:1px;flex:1;background:rgba(255,255,255,.1);min-height:26px;}
+  .tly{font-size:12px;font-weight:600;color:#7F77DD;margin-bottom:2px;}
+  .tlx{font-size:13px;color:rgba(255,255,255,.5);line-height:1.5;padding-bottom:18px;}
+
+  /* Pills */
+  .pills{display:flex;flex-wrap:wrap;gap:9px;margin-top:24px;}
+  .pill{font-size:13px;padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.55);}
+
+  /* Stagger helpers */
+  .fu{opacity:0;animation:fadeUp .6s ease forwards;}
+  .fd{opacity:0;animation:fadeDown .6s ease forwards;}
+  .fi{opacity:0;animation:fadeIn .7s ease forwards;}
+
+  /* Nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;margin-top:18px;max-width:820px;width:100%;}
+  .ndots{display:flex;gap:7px;}
+  .dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2);cursor:pointer;transition:background .2s;}
+  .dot.on{background:#7F77DD;}
+  .nav button{background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:7px 20px;font-size:13px;color:rgba(255,255,255,.6);cursor:pointer;transition:background .15s;}
+  .nav button:hover{background:rgba(255,255,255,.08);}
+
+  .hint{font-size:11px;color:rgba(255,255,255,.2);margin-top:10px;text-align:center;}
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- Slide 1: Pulse emphasis (from Darshan slide 1 & 6) -->
+  <div class="slide active enter-up" id="s0">
+    <span class="snum">1 / 6</span>
+    <div class="deco pulse" style="width:190px;height:190px;background:rgba(127,119,221,.18);top:-60px;right:-55px;"></div>
+    <div class="deco pulse" style="width:85px;height:85px;background:rgba(29,158,117,.15);bottom:14px;left:-28px;animation-delay:1.3s;"></div>
+
+    <div class="fu" style="animation-delay:.05s;">
+      <span class="tag tag-purple">Introduction</span>
+      <div class="accent" style="background:#7F77DD;"></div>
+      <h1>Artificial intelligence — reshaping our world</h1>
+      <p class="sub">From narrow algorithms to systems that write, reason, and create. What AI is, where it came from, and where it's headed.</p>
+    </div>
+    <div class="srow">
+      <div class="sc fu" style="animation-delay:.25s;"><div class="sv">$1.8T</div><div class="sl">AI market by 2030</div></div>
+      <div class="sc fu" style="animation-delay:.42s;"><div class="sv">300M+</div><div class="sl">Jobs impacted</div></div>
+      <div class="sc fu" style="animation-delay:.58s;"><div class="sv">97%</div><div class="sl">Firms planning AI</div></div>
+    </div>
+  </div>
+
+  <!-- Slide 2: Diagonal drift (from Darshan slide 3) -->
+  <div class="slide" id="s1">
+    <span class="snum">2 / 6</span>
+    <div class="deco diag" style="width:140px;height:140px;background:rgba(83,74,183,.2);top:-35px;right:55px;"></div>
+    <div class="fu" style="animation-delay:.05s;">
+      <span class="tag tag-teal">History</span>
+      <div class="accent" style="background:#1D9E75;"></div>
+      <h1>A brief history of AI</h1>
+    </div>
+    <div class="tl">
+      <div class="tli fu" style="animation-delay:.15s;"><div class="tll"><div class="tld"></div><div class="tlln"></div></div><div><div class="tly">1950s</div><div class="tlx">Turing proposes the imitation game. AI coined at Dartmouth Conference.</div></div></div>
+      <div class="tli fu" style="animation-delay:.3s;"><div class="tll"><div class="tld"></div><div class="tlln"></div></div><div><div class="tly">1980s</div><div class="tlx">Expert systems rise. Neural network research gains momentum.</div></div></div>
+      <div class="tli fu" style="animation-delay:.45s;"><div class="tll"><div class="tld"></div><div class="tlln"></div></div><div><div class="tly">2012</div><div class="tlx">Deep learning breakthrough — AlexNet wins ImageNet by a wide margin.</div></div></div>
+      <div class="tli fu" style="animation-delay:.6s;"><div class="tll"><div class="tld"></div></div><div><div class="tly">2022 – now</div><div class="tlx">Generative AI explodes. LLMs and AI assistants go mainstream globally.</div></div></div>
+    </div>
+  </div>
+
+  <!-- Slide 3: Fade-in + float up (from Darshan slides 8–11) -->
+  <div class="slide" id="s2">
+    <span class="snum">3 / 6</span>
+    <div class="deco diag" style="width:110px;height:110px;background:rgba(216,90,48,.15);bottom:-25px;right:38px;animation-delay:.7s;"></div>
+    <div class="fd" style="animation-delay:.05s;">
+      <span class="tag tag-purple">Core concepts</span>
+      <div class="accent" style="background:#7F77DD;"></div>
+      <h1>How AI learns</h1>
+      <p class="sub">Three main paradigms power modern AI systems.</p>
+    </div>
+    <div class="cgrid">
+      <div class="ic fu" style="animation-delay:.2s;"><div class="ict">Supervised learning</div><div class="icb">Train on labeled examples. Model learns to map inputs to correct outputs.</div></div>
+      <div class="ic fu" style="animation-delay:.35s;"><div class="ict">Unsupervised learning</div><div class="icb">Find hidden patterns in unlabeled data — clustering and anomaly detection.</div></div>
+      <div class="ic fu" style="animation-delay:.5s;"><div class="ict">Reinforcement learning</div><div class="icb">Agent earns rewards by taking actions in an environment. Trial and error at scale.</div></div>
+      <div class="ic fu" style="animation-delay:.65s;"><div class="ict">Large language models</div><div class="icb">Predict the next token. Trained on vast text, developing broad reasoning.</div></div>
+    </div>
+  </div>
+
+  <!-- Slide 4: Scale pulse + float bars (Darshan slide 6 scale + upward motion) -->
+  <div class="slide" id="s3">
+    <span class="snum">4 / 6</span>
+    <div class="deco pulse" style="width:155px;height:155px;background:rgba(29,158,117,.15);top:-48px;left:-45px;animation-delay:.9s;"></div>
+    <div class="fu" style="animation-delay:.05s;">
+      <span class="tag tag-coral">Applications</span>
+      <div class="accent" style="background:#D85A30;"></div>
+      <h1>AI across industries</h1>
+      <p class="sub">Adoption is accelerating across every sector.</p>
+    </div>
+    <div class="bsec">
+      <div class="fi" style="animation-delay:.2s;"><div class="bl"><span>Healthcare</span><span>78%</span></div><div class="bt"><div class="bf" data-w="78" style="background:#7F77DD;"></div></div></div>
+      <div class="fi" style="animation-delay:.35s;"><div class="bl"><span>Finance</span><span>85%</span></div><div class="bt"><div class="bf" data-w="85" style="background:#1D9E75;"></div></div></div>
+      <div class="fi" style="animation-delay:.5s;"><div class="bl"><span>Retail</span><span>69%</span></div><div class="bt"><div class="bf" data-w="69" style="background:#D85A30;"></div></div></div>
+      <div class="fi" style="animation-delay:.65s;"><div class="bl"><span>Manufacturing</span><span>72%</span></div><div class="bt"><div class="bf" data-w="72" style="background:#378ADD;"></div></div></div>
+    </div>
+    <p style="font-size:11px;color:rgba(255,255,255,.25);margin-top:12px;">% of firms using AI in some capacity (2024)</p>
+  </div>
+
+  <!-- Slide 5: Spin rock emphasis (from Darshan slides 13–14) -->
+  <div class="slide" id="s4">
+    <span class="snum">5 / 6</span>
+    <div class="deco spin" style="width:88px;height:88px;background:rgba(55,138,221,.18);bottom:32px;right:32px;"></div>
+    <div class="fu" style="animation-delay:.05s;">
+      <span class="tag tag-blue">Challenges</span>
+      <div class="accent" style="background:#378ADD;"></div>
+      <h1>Key challenges ahead</h1>
+      <p class="sub">Progress brings real questions researchers and policymakers must address.</p>
+    </div>
+    <div class="pills">
+      <span class="pill fu" style="animation-delay:.1s;">Bias &amp; fairness</span>
+      <span class="pill fu" style="animation-delay:.2s;">Hallucination</span>
+      <span class="pill fu" style="animation-delay:.3s;">Energy use</span>
+      <span class="pill fu" style="animation-delay:.4s;">Job displacement</span>
+      <span class="pill fu" style="animation-delay:.5s;">Privacy</span>
+      <span class="pill fu" style="animation-delay:.6s;">Regulation</span>
+      <span class="pill fu" style="animation-delay:.7s;">Alignment &amp; safety</span>
+      <span class="pill fu" style="animation-delay:.8s;">Interpretability</span>
+      <span class="pill fu" style="animation-delay:.9s;">Data ownership</span>
+    </div>
+  </div>
+
+  <!-- Slide 6: Pulse + fade-down (Darshan closing) -->
+  <div class="slide" id="s5">
+    <span class="snum">6 / 6</span>
+    <div class="deco pulse" style="width:200px;height:200px;background:rgba(83,74,183,.18);bottom:-75px;right:-60px;animation-delay:.5s;"></div>
+    <div class="fd" style="animation-delay:.05s;">
+      <span class="tag tag-teal">Future</span>
+      <div class="accent" style="background:#1D9E75;"></div>
+      <h1>What's next for AI</h1>
+      <p class="sub">The next decade will be defined by agents, reasoning, and AI that acts — not just answers.</p>
+    </div>
+    <div class="cgrid">
+      <div class="ic fu" style="animation-delay:.2s;"><div class="ict">Agentic AI</div><div class="icb">Systems that plan, use tools, and complete multi-step tasks autonomously.</div></div>
+      <div class="ic fu" style="animation-delay:.35s;"><div class="ict">Multimodal models</div><div class="icb">Understanding text, images, audio, video, and code together seamlessly.</div></div>
+      <div class="ic fu" style="animation-delay:.5s;"><div class="ict">Scientific discovery</div><div class="icb">Accelerating drug discovery, materials science, and climate research.</div></div>
+      <div class="ic fu" style="animation-delay:.65s;"><div class="ict">Personal AI</div><div class="icb">Models that know your context, adapt to you, and act on your behalf.</div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="nav">
+  <button id="prev">&#8592; Prev</button>
+  <div class="ndots" id="dots"></div>
+  <button id="next">Next &#8594;</button>
+</div>
+<p class="hint">Use arrow keys or buttons to navigate</p>
+
+<script>
+const slides=document.querySelectorAll('.slide');
+const dotsEl=document.getElementById('dots');
+let cur=0,animating=false;
+
+slides.forEach((_,i)=>{
+  const d=document.createElement('div');
+  d.className='dot'+(i===0?' on':'');
+  d.onclick=()=>go(i);
+  dotsEl.appendChild(d);
+});
+
+function resetAnims(slide){
+  slide.querySelectorAll('.fu,.fd,.fi').forEach(el=>{
+    el.style.opacity='0';
+    const a=el.style.animation;
+    el.style.animation='none';
+    void el.offsetWidth;
+    el.style.animation=a||'';
+  });
+  slide.querySelectorAll('.bf').forEach(b=>{b.style.transition='none';b.style.width='0';});
+}
+
+function triggerBars(slide){
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    slide.querySelectorAll('.bf').forEach(b=>{
+      b.style.transition='width 1.2s cubic-bezier(.4,0,.2,1) .3s';
+      b.style.width=b.dataset.w+'%';
+    });
+  }));
+}
+
+function go(n,dir){
+  if(animating||n===cur)return;
+  animating=true;
+  const old=slides[cur];
+  const next=slides[n=(n+slides.length)%slides.length];
+  old.style.transition='opacity .28s ease,transform .28s ease';
+  old.style.opacity='0';
+  old.style.transform=dir>0?'translateY(-20px)':'translateY(20px)';
+  setTimeout(()=>{
+    old.classList.remove('active');
+    old.style.cssText='';
+    cur=n;
+    resetAnims(next);
+    next.classList.add('active');
+    next.classList.add(dir>0?'enter-up':'enter-down');
+    triggerBars(next);
+    setTimeout(()=>next.classList.remove('enter-up','enter-down'),600);
+    document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===cur));
+    animating=false;
+  },290);
+}
+
+document.getElementById('next').onclick=()=>go(cur+1,1);
+document.getElementById('prev').onclick=()=>go(cur-1,-1);
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight')go(cur+1,1);
+  if(e.key==='ArrowLeft')go(cur-1,-1);
+});
+triggerBars(slides[0]);
+</script>
+</body>
+</html>
