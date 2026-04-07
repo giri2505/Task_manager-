@@ -1,0 +1,186 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.deck { width: 100%; font-family: var(--font-sans); }
+.slide { display: none; min-height: 420px; border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-primary); padding: 48px 52px; position: relative; overflow: hidden; opacity: 0; transform: translateY(18px); transition: opacity 0.5s ease, transform 0.5s ease; }
+.slide.active { display: flex; flex-direction: column; }
+.slide.visible { opacity: 1; transform: translateY(0); }
+.slide-num { font-size: 12px; color: var(--color-text-tertiary); position: absolute; top: 20px; right: 24px; }
+.tag { display: inline-block; font-size: 12px; font-weight: 500; padding: 4px 12px; border-radius: 20px; margin-bottom: 16px; }
+.tag-purple { background: #EEEDFE; color: #3C3489; }
+.tag-teal { background: #E1F5EE; color: #085041; }
+.tag-coral { background: #FAECE7; color: #712B13; }
+.tag-blue { background: #E6F1FB; color: #0C447C; }
+h1.slide-title { font-size: 32px; font-weight: 500; color: var(--color-text-primary); line-height: 1.2; margin-bottom: 12px; }
+p.slide-sub { font-size: 16px; color: var(--color-text-secondary); line-height: 1.6; max-width: 520px; }
+.stat-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 32px; }
+.stat-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 16px; }
+.stat-val { font-size: 26px; font-weight: 500; color: var(--color-text-primary); }
+.stat-lbl { font-size: 12px; color: var(--color-text-secondary); margin-top: 4px; }
+.pill-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.pill { font-size: 13px; padding: 6px 14px; border-radius: 20px; border: 0.5px solid var(--color-border-secondary); color: var(--color-text-secondary); }
+.timeline { margin-top: 28px; display: flex; flex-direction: column; gap: 0; }
+.tl-item { display: flex; gap: 20px; align-items: flex-start; }
+.tl-left { display: flex; flex-direction: column; align-items: center; }
+.tl-dot { width: 10px; height: 10px; border-radius: 50%; background: #7F77DD; margin-top: 4px; flex-shrink: 0; }
+.tl-line { width: 1px; flex: 1; background: var(--color-border-tertiary); min-height: 28px; }
+.tl-content { padding-bottom: 24px; }
+.tl-year { font-size: 12px; font-weight: 500; color: #534AB7; margin-bottom: 2px; }
+.tl-text { font-size: 14px; color: var(--color-text-secondary); line-height: 1.5; }
+.card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 28px; }
+.info-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 16px; }
+.info-card-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 6px; }
+.info-card-body { font-size: 13px; color: var(--color-text-secondary); line-height: 1.5; }
+.bar-section { margin-top: 28px; display: flex; flex-direction: column; gap: 14px; }
+.bar-row { display: flex; flex-direction: column; gap: 5px; }
+.bar-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--color-text-secondary); }
+.bar-track { height: 8px; background: var(--color-background-secondary); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; width: 0; transition: width 1s ease 0.3s; }
+.nav { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; padding: 0 4px; }
+.nav-dots { display: flex; gap: 6px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-border-secondary); cursor: pointer; transition: background 0.2s; }
+.dot.on { background: #7F77DD; }
+.nav button { background: transparent; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 6px 18px; font-size: 13px; color: var(--color-text-secondary); cursor: pointer; }
+.nav button:hover { background: var(--color-background-secondary); }
+.accent-line { width: 40px; height: 3px; background: #7F77DD; border-radius: 2px; margin-bottom: 24px; }
+</style>
+
+<div class="deck">
+  <div class="slide active" id="s0">
+    <span class="slide-num">1 / 6</span>
+    <span class="tag tag-purple">Introduction</span>
+    <div class="accent-line"></div>
+    <h1 class="slide-title">Artificial intelligence — reshaping our world</h1>
+    <p class="slide-sub">From narrow algorithms to systems that write, reason, and create. A journey through what AI is, where it came from, and where it's headed.</p>
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-val">$1.8T</div><div class="stat-lbl">AI market by 2030</div></div>
+      <div class="stat-card"><div class="stat-val">300M+</div><div class="stat-lbl">Jobs to be impacted</div></div>
+      <div class="stat-card"><div class="stat-val">97%</div><div class="stat-lbl">Of firms plan AI adoption</div></div>
+    </div>
+  </div>
+
+  <div class="slide" id="s1">
+    <span class="slide-num">2 / 6</span>
+    <span class="tag tag-teal">History</span>
+    <div class="accent-line" style="background:#1D9E75;"></div>
+    <h1 class="slide-title">A brief history of AI</h1>
+    <div class="timeline">
+      <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-year">1950s</div><div class="tl-text">Turing proposes the imitation game. AI coined at Dartmouth Conference.</div></div></div>
+      <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-year">1980s</div><div class="tl-text">Expert systems rise. Neural network research gains traction.</div></div></div>
+      <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-year">2012</div><div class="tl-text">Deep learning breakthrough — AlexNet wins ImageNet by a wide margin.</div></div></div>
+      <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div></div><div class="tl-content"><div class="tl-year">2022 – now</div><div class="tl-text">Generative AI explodes. LLMs, image models, and AI assistants go mainstream.</div></div></div>
+    </div>
+  </div>
+
+  <div class="slide" id="s2">
+    <span class="slide-num">3 / 6</span>
+    <span class="tag tag-purple">Core concepts</span>
+    <div class="accent-line"></div>
+    <h1 class="slide-title">How AI learns</h1>
+    <p class="slide-sub">Three main paradigms power modern AI systems.</p>
+    <div class="card-grid">
+      <div class="info-card"><div class="info-card-title">Supervised learning</div><div class="info-card-body">Train on labeled examples. The model learns to map inputs to correct outputs.</div></div>
+      <div class="info-card"><div class="info-card-title">Unsupervised learning</div><div class="info-card-body">Find hidden patterns in unlabeled data — clustering, compression, anomaly detection.</div></div>
+      <div class="info-card"><div class="info-card-title">Reinforcement learning</div><div class="info-card-body">An agent earns rewards by taking actions in an environment. Trial and error at scale.</div></div>
+      <div class="info-card"><div class="info-card-title">Large language models</div><div class="info-card-body">Predict the next token. Trained on vast text, they develop broad reasoning abilities.</div></div>
+    </div>
+  </div>
+
+  <div class="slide" id="s3">
+    <span class="slide-num">4 / 6</span>
+    <span class="tag tag-coral">Applications</span>
+    <div class="accent-line" style="background:#D85A30;"></div>
+    <h1 class="slide-title">AI across industries</h1>
+    <p class="slide-sub">AI adoption is accelerating across every sector.</p>
+    <div class="bar-section" id="bars">
+      <div class="bar-row"><div class="bar-label"><span>Healthcare</span><span>78%</span></div><div class="bar-track"><div class="bar-fill" data-w="78" style="background:#7F77DD;"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span>Finance</span><span>85%</span></div><div class="bar-track"><div class="bar-fill" data-w="85" style="background:#1D9E75;"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span>Retail</span><span>69%</span></div><div class="bar-track"><div class="bar-fill" data-w="69" style="background:#D85A30;"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span>Manufacturing</span><span>72%</span></div><div class="bar-track"><div class="bar-fill" data-w="72" style="background:#378ADD;"></div></div></div>
+    </div>
+    <p style="font-size:11px;color:var(--color-text-tertiary);margin-top:12px;">% of firms using AI in some capacity (2024)</p>
+  </div>
+
+  <div class="slide" id="s4">
+    <span class="slide-num">5 / 6</span>
+    <span class="tag tag-blue">Challenges</span>
+    <div class="accent-line" style="background:#378ADD;"></div>
+    <h1 class="slide-title">Key challenges ahead</h1>
+    <p class="slide-sub">Progress brings real questions that researchers and policymakers must address.</p>
+    <div class="pill-row">
+      <span class="pill">Bias & fairness</span>
+      <span class="pill">Hallucination</span>
+      <span class="pill">Energy consumption</span>
+      <span class="pill">Job displacement</span>
+      <span class="pill">Privacy</span>
+      <span class="pill">Regulation</span>
+      <span class="pill">Alignment & safety</span>
+      <span class="pill">Interpretability</span>
+      <span class="pill">Data ownership</span>
+    </div>
+  </div>
+
+  <div class="slide" id="s5">
+    <span class="slide-num">6 / 6</span>
+    <span class="tag tag-teal">Future</span>
+    <div class="accent-line" style="background:#1D9E75;"></div>
+    <h1 class="slide-title">What's next for AI</h1>
+    <p class="slide-sub">The next decade will be defined by agents, reasoning, and AI that acts — not just answers.</p>
+    <div class="card-grid" style="margin-top:28px;">
+      <div class="info-card"><div class="info-card-title">Agentic AI</div><div class="info-card-body">Systems that plan, use tools, and complete multi-step tasks autonomously.</div></div>
+      <div class="info-card"><div class="info-card-title">Multimodal models</div><div class="info-card-body">Seamlessly understanding text, images, audio, video, and code together.</div></div>
+      <div class="info-card"><div class="info-card-title">Scientific discovery</div><div class="info-card-body">AI accelerating drug discovery, materials science, and climate research.</div></div>
+      <div class="info-card"><div class="info-card-title">Personal AI</div><div class="info-card-body">Models that know your context, adapt to you, and act on your behalf.</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="nav">
+  <button id="prev">&#8592; Prev</button>
+  <div class="nav-dots" id="dots"></div>
+  <button id="next">Next &#8594;</button>
+</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const dotsEl = document.getElementById('dots');
+let cur = 0;
+
+slides.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' on' : '');
+  d.onclick = () => go(i);
+  dotsEl.appendChild(d);
+});
+
+function animateBars(slide) {
+  slide.querySelectorAll('.bar-fill').forEach(b => {
+    b.style.width = b.dataset.w + '%';
+  });
+}
+
+function go(n) {
+  slides[cur].classList.remove('visible');
+  setTimeout(() => {
+    slides[cur].classList.remove('active');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        slides[cur].classList.add('visible');
+        animateBars(slides[cur]);
+      });
+    });
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i === cur));
+  }, 300);
+}
+
+document.getElementById('next').onclick = () => go(cur + 1);
+document.getElementById('prev').onclick = () => go(cur - 1);
+
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    slides[0].classList.add('visible');
+  });
+});
+</script>
