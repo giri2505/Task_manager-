@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backup Automation Dashboard — NetWorker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f3; --bg3: #eeece8;
+    --txt: #1a1a18; --txt2: #6b6b67; --txt3: #9c9a92;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --info-bg: #e6f1fb; --info-txt: #185fa5; --info-border: rgba(24,95,165,0.35);
+    --success-bg: #eaf3de; --success-txt: #3b6d11; --success-border: rgba(59,109,17,0.3);
+    --warn-bg: #faeeda; --warn-txt: #854f0b; --warn-border: rgba(133,79,11,0.3);
+    --danger-bg: #fcebeb; --danger-txt: #a32d2d; --danger-border: rgba(163,45,45,0.3);
+    --radius: 8px; --radius-lg: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e1c; --bg2: #27271f; --bg3: #2d2d25;
+      --txt: #e8e6de; --txt2: #9c9a92; --txt3: #6b6b67;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+      --info-bg: #0c2d4a; --info-txt: #85b7eb; --info-border: rgba(133,183,235,0.3);
+      --success-bg: #162808; --success-txt: #97c459; --success-border: rgba(151,196,89,0.3);
+      --warn-bg: #2e1c04; --warn-txt: #ef9f27; --warn-border: rgba(239,159,39,0.3);
+      --danger-bg: #2e0d0d; --danger-txt: #f09595; --danger-border: rgba(240,149,149,0.3);
+    }
+  }
+  body { background: var(--bg); color: var(--txt); min-height: 100vh; }
+  .dash { display: grid; grid-template-columns: 290px 1fr; grid-template-rows: 52px 1fr; height: 100vh; }
+  .top-bar { grid-column: 1/-1; background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 0 20px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 28px; height: 28px; background: var(--txt); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+  .logo-icon svg { width: 16px; height: 16px; }
+  .logo h1 { font-size: 14px; font-weight: 500; }
+  .conn-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--txt2); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .dot-ok { background: var(--success-txt); }
+  .btn-outline { background: transparent; border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 6px 14px; font-size: 12px; color: var(--txt2); cursor: pointer; transition: background .15s; }
+  .btn-outline:hover { background: var(--bg2); }
+
+  /* Sidebar */
+  .sidebar { background: var(--bg2); border-right: 0.5px solid var(--border); padding: 14px 12px; overflow-y: auto; }
+  .section-label { font-size: 10px; font-weight: 600; color: var(--txt3); text-transform: uppercase; letter-spacing: .08em; margin: 8px 0 8px; }
+  .ticket-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 11px 12px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s; }
+  .ticket-card:hover { border-color: var(--border2); }
+  .ticket-card.active { border-color: var(--info-border); background: var(--info-bg); }
+  .ticket-card.active .t-id { color: var(--info-txt); }
+  .t-id { font-size: 11px; font-weight: 500; color: var(--txt2); margin-bottom: 2px; }
+  .t-server { font-size: 13px; font-weight: 500; }
+  .t-client { font-size: 12px; color: var(--txt2); margin-top: 2px; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 20px; margin-top: 7px; font-weight: 500; }
+  .b-open { background: var(--warn-bg); color: var(--warn-txt); }
+  .b-running { background: var(--info-bg); color: var(--info-txt); }
+  .b-done { background: var(--success-bg); color: var(--success-txt); }
+  .b-fail { background: var(--danger-bg); color: var(--danger-txt); }
+
+  /* Main */
+  .main { padding: 18px; overflow-y: auto; }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .metric-card { background: var(--bg2); border-radius: var(--radius); padding: 12px 14px; }
+  .metric-val { font-size: 24px; font-weight: 500; }
+  .metric-lbl { font-size: 11px; color: var(--txt2); margin-top: 2px; }
+  .mv-warn { color: var(--warn-txt); }
+  .mv-ok { color: var(--success-txt); }
+  .mv-err { color: var(--danger-txt); }
+
+  /* Step list */
+  .panel-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+  .panel-info h2 { font-size: 15px; font-weight: 500; }
+  .panel-info p { font-size: 12px; color: var(--txt2); margin-top: 3px; }
+  .btn-run { background: var(--txt); color: var(--bg); border: none; border-radius: var(--radius); padding: 9px 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity .15s; white-space: nowrap; }
+  .btn-run:disabled { opacity: .4; cursor: not-allowed; }
+  .step-row { display: flex; align-items: flex-start; gap: 12px; padding: 11px 14px; border-radius: var(--radius); margin-bottom: 6px; background: var(--bg2); border: 0.5px solid var(--border); transition: all .2s; }
+  .step-row.active { background: var(--info-bg); border-color: var(--info-border); }
+  .step-row.done { background: var(--success-bg); border-color: var(--success-border); }
+  .step-row.fail { background: var(--danger-bg); border-color: var(--danger-border); }
+  .step-row.warn { background: var(--warn-bg); border-color: var(--warn-border); }
+  .step-num { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
+  .sn-idle { background: var(--bg3); color: var(--txt3); }
+  .sn-active { background: var(--info-bg); color: var(--info-txt); border: 1.5px solid var(--info-border); }
+  .sn-done { background: var(--success-bg); color: var(--success-txt); }
+  .sn-fail { background: var(--danger-bg); color: var(--danger-txt); }
+  .step-body { flex: 1; }
+  .step-name { font-size: 13px; font-weight: 500; }
+  .step-desc { font-size: 12px; color: var(--txt2); margin-top: 3px; }
+  .step-desc.ok { color: var(--success-txt); }
+  .step-desc.err { color: var(--danger-txt); }
+  .step-desc.info { color: var(--info-txt); }
+  .close-notes { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-top: 14px; font-size: 12px; line-height: 1.8; color: var(--txt2); }
+  .close-notes.fail { border-color: var(--danger-border); background: var(--danger-bg); }
+  .close-notes h3 { font-size: 13px; font-weight: 500; color: var(--txt); margin-bottom: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { display: inline-block; animation: spin .7s linear infinite; }
+  .empty-state { text-align: center; color: var(--txt3); font-size: 13px; padding: 40px; }
+
+  /* Import modal overlay */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:100; align-items:center; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--bg); border:0.5px solid var(--border2); border-radius: var(--radius-lg); padding: 22px; width: 380px; max-width: 90vw; }
+  .modal h2 { font-size: 15px; font-weight: 500; margin-bottom: 8px; }
+  .modal p { font-size: 13px; color: var(--txt2); margin-bottom: 16px; line-height: 1.6; }
+  .modal input[type=file] { width:100%; font-size:12px; color:var(--txt2); }
+  .modal-btns { display:flex; gap:8px; margin-top:16px; justify-content:flex-end; }
+</style>
+</head>
+<body>
+<div class="dash">
+  <div class="top-bar">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 16 16" fill="none">
+          <rect x="2" y="2" width="5" height="5" rx="1" fill="white" opacity=".9"/>
+          <rect x="9" y="2" width="5" height="5" rx="1" fill="white" opacity=".55"/>
+          <rect x="2" y="9" width="5" height="5" rx="1" fill="white" opacity=".55"/>
+          <rect x="9" y="9" width="5" height="5" rx="1" fill="white" opacity=".9"/>
+        </svg>
+      </div>
+      <h1>Backup Automation — NetWorker</h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="conn-status"><span class="dot dot-ok"></span> Connected · ServiceNow</div>
+      <button class="btn-outline" onclick="openImport()">Import CSV / Excel</button>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="section-label">Tickets</div>
+    <div id="ticket-list"></div>
+  </div>
+
+  <div class="main">
+    <div class="metrics" id="metrics-bar"></div>
+    <div id="main-panel"><div class="empty-state">Select a ticket to begin</div></div>
+  </div>
+</div>
+
+<!-- Import modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>Import tickets from ServiceNow</h2>
+    <p>Export backup failure tickets from ServiceNow as CSV or Excel (XLSX), then upload them here. Required columns: <strong>Ticket ID, NW Server, Client, Priority, Opened</strong>.</p>
+    <input type="file" accept=".csv,.xlsx,.xls" onchange="handleFileImport(this)">
+    <div class="modal-btns">
+      <button class="btn-outline" onclick="closeImport()">Cancel</button>
+      <button class="btn-run" onclick="simulateImport()">Simulate import</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const tickets = [
+  { id:'INC0041822', server:'nw-prod-01.corp', client:'db-oracle-09.corp',  os:'linux',   status:'open',   priority:'P2' },
+  { id:'INC0041890', server:'nw-prod-02.corp', client:'win-sql-04.corp',    os:'windows', status:'done',   priority:'P1' },
+  { id:'INC0041901', server:'nw-prod-01.corp', client:'app-tomcat-11.corp', os:'linux',   status:'fail',   priority:'P2' },
+  { id:'INC0041933', server:'nw-prod-03.corp', client:'win-file-02.corp',   os:'windows', status:'open',   priority:'P3' },
+];
+
+const stepDefs = [
+  { name:'Parse ticket',            desc:'Extract NW server + client from ServiceNow ticket' },
+  { name:'Check reachability',      desc:'Ping / ICMP test to client host' },
+  { name:'Detect OS',               desc:'Look up inventory file — Linux or Windows?' },
+  { name:'Login via service account', desc:'SSH (Linux) or WinRM (Windows) using svc_backup' },
+  { name:'Check backup services',   desc:'Linux: backup-agent, SSH · Windows: VSS, BSS, ASR, Crypto' },
+  { name:'Check disk space',        desc:'df -h (Linux) · WMI disk query (Windows)' },
+  { name:'Retrigger backup',        desc:'nsrinfo / savegrp command on NetWorker server' },
+  { name:'Generate close notes',    desc:'Summary of all actions taken → close ticket in ServiceNow' },
+];
+
+const presetResults = {
+  done: [
+    { state:'done', detail:'NW server: nw-prod-02.corp · Client: win-sql-04.corp', ok:true },
+    { state:'done', detail:'Reachable — 4ms RTT', ok:true },
+    { state:'done', detail:'Windows Server 2022 (via inventory lookup)', ok:true },
+    { state:'done', detail:'Connected as svc_backup@corp via WinRM', ok:true },
+    { state:'done', detail:'BSS was stopped → restarted successfully', ok:true },
+    { state:'done', detail:'C:\\ 42 GB free (18%) · D:\\ 210 GB free (65%) — OK', ok:true },
+    { state:'done', detail:'Backup job queued: win-sql-04_full · Job ID 449921', ok:true },
+    { state:'done', detail:'INC0041890 closed · Root cause: BSS service crash after patch reboot', ok:true },
+  ],
+  fail: [
+    { state:'done', detail:'NW server: nw-prod-01.corp · Client: app-tomcat-11.corp', ok:true },
+    { state:'done', detail:'Reachable — 12ms RTT', ok:true },
+    { state:'done', detail:'RHEL 8.6 (via inventory lookup)', ok:true },
+    { state:'done', detail:'Connected as svc_backup@corp via SSH', ok:true },
+    { state:'done', detail:'backup-agent: running · SSH: running — no restart needed', ok:true },
+    { state:'fail',  detail:'/backup → 0 bytes free (100% full) · Automation halted', ok:false },
+    { state:'warn',  detail:'Skipped — disk full. Manual cleanup required', ok:null },
+    { state:'warn',  detail:'Ticket escalated to L2 team for disk remediation', ok:null },
+  ],
+};
+
+let selected = null;
+let running = false;
+let runState = [];
+
+function statusLabel(s) {
+  return { open:'Open', running:'Running', done:'Closed', fail:'Action Required' }[s] || s;
+}
+
+function renderTicketList() {
+  document.getElementById('ticket-list').innerHTML = tickets.map((t,i) => `
+    <div class="ticket-card${i===selected?' active':''}" onclick="selectTicket(${i})">
+      <div class="t-id">${t.id} &nbsp;·&nbsp; ${t.priority}</div>
+      <div class="t-server">${t.server}</div>
+      <div class="t-client">${t.client}</div>
+      <span class="badge b-${t.status}">${statusLabel(t.status)}</span>
+    </div>
+  `).join('');
+}
+
+function renderMetrics() {
+  const c = {open:0,running:0,done:0,fail:0};
+  tickets.forEach(t => c[t.status] = (c[t.status]||0)+1);
+  document.getElementById('metrics-bar').innerHTML = `
+    <div class="metric-card"><div class="metric-val">${tickets.length}</div><div class="metric-lbl">Total tickets</div></div>
+    <div class="metric-card"><div class="metric-val mv-warn">${c.open||0}</div><div class="metric-lbl">Open</div></div>
+    <div class="metric-card"><div class="metric-val mv-ok">${c.done||0}</div><div class="metric-lbl">Closed</div></div>
+    <div class="metric-card"><div class="metric-val mv-err">${c.fail||0}</div><div class="metric-lbl">Action Required</div></div>
+  `;
+}
+
+function getStepResults(t) {
+  if (t.status === 'done') return presetResults.done;
+  if (t.status === 'fail') return presetResults.fail;
+  if (running || runState.length > 0) return runState;
+  return stepDefs.map(() => ({state:'idle', detail:'', ok:null}));
+}
+
+function snClass(state) {
+  return {idle:'sn-idle', active:'sn-active', done:'sn-done', fail:'sn-fail', warn:'sn-fail'}[state] || 'sn-idle';
+}
+function snChar(state) {
+  if (state === 'done') return '✓';
+  if (state === 'fail' || state === 'warn') return '!';
+  if (state === 'active') return '<span class="spin">↻</span>';
+  return '·';
+}
+function rowClass(state) {
+  return {active:'active', done:'done', fail:'fail', warn:'warn'}[state] || '';
+}
+function detailClass(s) {
+  if (s.state === 'done' && s.ok !== false) return 'ok';
+  if (s.state === 'fail') return 'err';
+  if (s.state === 'active') return 'info';
+  return '';
+}
+
+function renderMain() {
+  if (selected === null) { document.getElementById('main-panel').innerHTML = '<div class="empty-state">Select a ticket to view automation steps</div>'; return; }
+  const t = tickets[selected];
+  const results = getStepResults(t);
+  const canRun = t.status === 'open' && !running;
+  let btnLabel = '▷ Run automation';
+  if (running) btnLabel = '<span class="spin">↻</span> Running…';
+  else if (t.status === 'done') btnLabel = '✓ Completed';
+  else if (t.status === 'fail') btnLabel = '! Escalated';
+
+  const steps = stepDefs.map((s,i) => {
+    const r = results[i] || {state:'idle', detail:'', ok:null};
+    return `<div class="step-row ${rowClass(r.state)}">
+      <div class="step-num ${snClass(r.state)}">${snChar(r.state)}</div>
+      <div class="step-body">
+        <div class="step-name">Step ${i+1}: ${s.name}</div>
+        <div class="step-desc ${detailClass(r)}">${r.detail || s.desc}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  let notes = '';
+  if (t.status === 'done') {
+    notes = `<div class="close-notes">
+      <h3>Close summary — ${t.id}</h3>
+      Backup failure on client <strong>${t.client}</strong> (${t.os === 'windows' ? 'Windows Server 2022' : 'RHEL'}) managed by <strong>${t.server}</strong>.<br>
+      Root cause: <strong>BSS (Backup Service Stub) was in a stopped state</strong> following patch reboot.<br>
+      Action: Service restarted via svc_backup account. Disk space within acceptable limits.<br>
+      Backup re-triggered successfully — Job ID <strong>449921</strong>. Ticket closed. No further action needed.
+    </div>`;
+  } else if (t.status === 'fail') {
+    notes = `<div class="close-notes fail">
+      <h3>Escalation — ${t.id}</h3>
+      Automation halted at Step 6. <strong>/backup partition is 100% full</strong> on ${t.client}.<br>
+      All backup services confirmed running. Disk cleanup or partition expansion required before backup can be re-triggered.<br>
+      Ticket assigned to <strong>L2 storage team</strong> for manual remediation.
+    </div>`;
+  }
+
+  document.getElementById('main-panel').innerHTML = `
+    <div class="panel-header">
+      <div class="panel-info">
+        <h2>${t.id} — ${t.client}</h2>
+        <p>NW Server: ${t.server} &nbsp;·&nbsp; OS: ${t.os === 'windows' ? 'Windows' : 'Linux'} &nbsp;·&nbsp; Priority: ${t.priority}</p>
+      </div>
+      <button class="btn-run" onclick="runAutomation()" ${canRun ? '' : 'disabled'}>${btnLabel}</button>
+    </div>
+    ${steps}
+    ${notes}
+  `;
+}
+
+function selectTicket(i) {
+  selected = i;
+  running = false;
+  runState = [];
+  renderTicketList();
+  renderMain();
+}
+
+const liveSteps = [
+  { delay:500,  detail:'NW server: nw-prod-01.corp · Client: db-oracle-09.corp', ok:true },
+  { delay:1000, detail:'Reachable — 8ms RTT', ok:true },
+  { delay:800,  detail:'RHEL 9.2 detected via inventory file', ok:true },
+  { delay:1100, detail:'Connected as svc_backup@corp via SSH', ok:true },
+  { delay:1300, detail:'backup-agent: stopped → restarted successfully', ok:true },
+  { delay:800,  detail:'/var 12 GB free (31%) · / 45 GB free (52%) — OK', ok:true },
+  { delay:1500, detail:'Backup job queued: db-oracle-09_full · Job ID 554302', ok:true },
+  { delay:700,  detail:'INC0041822 closed · Root cause: backup-agent OOM crash', ok:true },
+];
+
+function runAutomation() {
+  if (running || selected === null) return;
+  const t = tickets[selected];
+  if (t.status !== 'open') return;
+  running = true;
+  runState = stepDefs.map(() => ({state:'idle', detail:'', ok:null}));
+  renderMain();
+
+  let i = 0;
+  function nextStep() {
+    if (i >= stepDefs.length) {
+      running = false;
+      tickets[selected].status = 'done';
+      runState = liveSteps.map(s => ({state:'done', detail:s.detail, ok:s.ok}));
+      renderTicketList();
+      renderMetrics();
+      renderMain();
+      return;
+    }
+    runState[i] = {state:'active', detail:'Running…', ok:null};
+    renderMain();
+    setTimeout(() => {
+      runState[i] = {state:'done', detail:liveSteps[i].detail, ok:liveSteps[i].ok};
+      i++;
+      renderMain();
+      setTimeout(nextStep, 180);
+    }, liveSteps[i].delay);
+  }
+  nextStep();
+}
+
+function openImport() { document.getElementById('modal').classList.add('open'); }
+function closeImport() { document.getElementById('modal').classList.remove('open'); }
+function handleFileImport(input) {
+  if (input.files.length) {
+    setTimeout(() => { closeImport(); simulateImport(); }, 300);
+  }
+}
+function simulateImport() {
+  closeImport();
+  tickets.push({ id:'INC0042011', server:'nw-prod-04.corp', client:'db-pg-07.corp', os:'linux', status:'open', priority:'P2' });
+  renderTicketList();
+  renderMetrics();
+}
+
+renderTicketList();
+renderMetrics();
+</script>
+</body>
+</html>
