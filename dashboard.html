@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NetWorker Remediation System</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f3ef;--surface:#fff;--surface2:#f0efe9;--border:rgba(0,0,0,.09);--border2:rgba(0,0,0,.16);
+  --text:#1a1a18;--text2:#5c5c58;--text3:#9b9b94;
+  --blue:#1a6fbd;--blue-bg:#e8f2fc;--blue-txt:#0d4a84;
+  --green:#1a7a40;--green-bg:#e6f5ec;--green-txt:#0f5229;
+  --red:#c0392b;--red-bg:#fdecea;--red-txt:#8b1a12;
+  --amber:#a05c00;--amber-bg:#fff3e0;--amber-txt:#7a4500;
+  --purple:#6b3fa0;--purple-bg:#f2ecfc;--purple-txt:#4a2872;
+  --r:8px;--rl:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5}
+.shell{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:210px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.logo{padding:14px 16px;border-bottom:1px solid var(--border)}
+.logo-title{font-size:13px;font-weight:700}
+.logo-sub{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:1px}
+.nav{padding:8px;flex:1;overflow-y:auto}
+.nav-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:10px 10px 4px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r);cursor:pointer;color:var(--text2);font-size:12px;margin-bottom:1px;transition:background .1s,color .1s;user-select:none}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--blue-bg);color:var(--blue-txt);font-weight:500}
+.ni{width:15px;text-align:center;flex-shrink:0;font-size:13px}
+.sidebar-foot{padding:10px 12px;border-top:1px solid var(--border)}
+.api-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#ccc;margin-right:5px;vertical-align:middle;flex-shrink:0}
+.api-dot.ok{background:var(--green)}.api-dot.err{background:var(--red)}.api-dot.warn{background:var(--amber)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 18px;height:50px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px}
+.page-title{font-size:14px;font-weight:600}
+.topbar-right{display:flex;gap:7px;align-items:center}
+.content{flex:1;overflow-y:auto;padding:18px}
+
+/* Connection banner */
+#conn-banner{display:none;background:var(--red-bg);border-bottom:1px solid #f0b8b0;padding:10px 18px;font-size:12px;color:var(--red-txt);align-items:center;gap:10px;flex-shrink:0}
+#conn-banner.show{display:flex}
+#conn-banner input{padding:5px 9px;border:1px solid #f0b8b0;border-radius:var(--r);font-size:12px;background:#fff;color:var(--text);outline:none;width:220px}
+#conn-banner button{padding:5px 12px;border-radius:var(--r);border:none;background:var(--red);color:#fff;font-size:11px;cursor:pointer;font-family:inherit}
+
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:12px;cursor:pointer;transition:background .1s;white-space:nowrap;font-family:inherit}
+.btn:hover{background:var(--surface2)}.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--blue);color:#fff;border-color:transparent}.btn.primary:hover{background:#155ca8}
+.btn.success{background:var(--green);color:#fff;border-color:transparent}.btn.success:hover{background:#156035}
+.btn.danger{background:var(--red);color:#fff;border-color:transparent}
+.btn-sm{padding:4px 9px;font-size:11px}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:13px 15px}
+.stat-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:5px}
+.stat-val{font-size:26px;font-weight:700;line-height:1}
+.s-new .stat-val{color:var(--amber)}.s-prog .stat-val{color:var(--blue)}.s-ok .stat-val{color:var(--green)}.s-fail .stat-val{color:var(--red)}
+
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:500;white-space:nowrap}
+.b-new{background:var(--amber-bg);color:var(--amber-txt)}.b-running{background:var(--blue-bg);color:var(--blue-txt)}
+.b-remediated{background:var(--green-bg);color:var(--green-txt)}.b-partial{background:var(--amber-bg);color:var(--amber-txt)}
+.b-failed,.b-unreachable{background:var(--red-bg);color:var(--red-txt)}
+.b-manual{background:var(--purple-bg);color:var(--purple-txt)}.b-win{background:var(--blue-bg);color:var(--blue-txt)}.b-linux{background:var(--green-bg);color:var(--green-txt)}
+
+.tcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:16px}
+.ttoolbar{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+table{width:100%;border-collapse:collapse}
+th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;background:var(--surface2);border-bottom:1px solid var(--border)}
+td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.clickable{cursor:pointer}tr.clickable:hover td{background:#faf9f6}tr.sel td{background:var(--blue-bg)!important}
+
+.prog{display:flex;align-items:center;gap:7px}
+.prog-bar{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;min-width:50px}
+.prog-fill{height:100%;border-radius:3px;transition:width .4s}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:14px}
+.card-hd{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:600}
+.card-body{padding:14px}
+
+.steps{display:flex;flex-direction:column;gap:5px}
+.step-row{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;border-radius:var(--r);border:1px solid var(--border)}
+.step-row.done{border-color:#b8dfc8;background:#f4fbf6}.step-row.active{border-color:#a8c8f0;background:#eef5fd}
+.step-row.fail{border-color:#f0b8b0;background:#fef5f4}.step-row.warn{border-color:#f0d8a0;background:#fef8ec}
+.step-row.manual{border-color:#c8b0e8;background:#f8f2fe}.step-row.skip{opacity:.4}
+.step-num{width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
+.sn-done{background:var(--green);color:#fff}.sn-active{background:var(--blue);color:#fff}
+.sn-fail{background:var(--red);color:#fff}.sn-warn{background:var(--amber);color:#fff}
+.sn-manual{background:var(--purple);color:#fff}.sn-pend{background:var(--border2);color:var(--text3)}
+.step-body{flex:1;min-width:0}
+.step-title{font-size:12px;font-weight:600}.step-note{font-size:11px;color:var(--text2);margin-top:2px}
+@keyframes spin{to{transform:rotate(360deg)}}.spin{display:inline-block;animation:spin .8s linear infinite}
+
+.log-box{background:#1a1a18;color:#c8c8c0;font-family:'Menlo','Consolas',monospace;font-size:11px;padding:11px;border-radius:var(--r);height:200px;overflow-y:auto;line-height:1.6}
+.log-box .ok{color:#7ec89a}.log-box .fail{color:#f09090}.log-box .warn{color:#f0d080}.log-box .info{color:#80b8f0}
+
+.det-layout{display:grid;grid-template-columns:1fr 320px;gap:14px}
+.ig{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.ic{background:var(--surface2);border-radius:var(--r);padding:9px 11px}
+.ik{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)}
+.iv{font-size:12px;font-weight:600;margin-top:2px;word-break:break-all}
+.close-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:12px;font-size:12px;line-height:1.8;white-space:pre-wrap;max-height:360px;overflow-y:auto;color:var(--text)}
+.workorder-box{background:#1a1a18;color:#d4d4c8;font-family:'Menlo','Consolas',monospace;font-size:11px;padding:12px;border-radius:var(--r);line-height:1.8;white-space:pre-wrap;max-height:380px;overflow-y:auto}
+
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.ff{display:flex;flex-direction:column;gap:4px}
+.ff label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em}
+.ff input,.ff select,.ff textarea{padding:7px 9px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--surface);color:var(--text);outline:none;transition:border-color .12s;font-family:inherit}
+.ff input:focus,.ff select:focus,.ff textarea:focus{border-color:var(--blue)}
+.ff.full{grid-column:1/-1}
+
+.dropzone{border:2px dashed var(--border2);border-radius:var(--rl);padding:28px;text-align:center;cursor:pointer;transition:background .12s,border-color .12s}
+.dropzone:hover,.dropzone.drag{background:var(--blue-bg);border-color:var(--blue)}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.toasts{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:7px;z-index:9999;pointer-events:none}
+.toast{background:var(--text);color:#fff;padding:9px 14px;border-radius:var(--r);font-size:12px;max-width:300px;opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s;pointer-events:all}
+.toast.show{opacity:1;transform:translateY(0)}.toast.ok{background:var(--green)}.toast.err{background:var(--red)}.toast.warn{background:var(--amber)}
+.ai-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;background:var(--purple-bg);color:var(--purple-txt)}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:14px}
+.chart-card h3{font-size:12px;font-weight:600;margin-bottom:12px;color:var(--text2)}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px}
+.bar-label{width:130px;flex-shrink:0;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:12px;background:var(--surface2);border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:6px;transition:width .5s}
+.bar-count{min-width:24px;text-align:right;color:var(--text3);font-weight:500}
+.parse-preview{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:12px;font-size:12px;margin-top:10px;display:none}
+.parse-field{display:flex;gap:8px;margin-bottom:4px}
+.parse-key{color:var(--text3);min-width:120px;flex-shrink:0;font-size:11px}
+.parse-val{font-weight:500;color:var(--text)}
+.conf-high{color:var(--green-txt)}.conf-medium{color:var(--amber-txt)}.conf-low{color:var(--red-txt)}
+.sec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px}
+.divider{border:none;border-top:1px solid var(--border);margin:14px 0}
+input[type=file]{display:none}
+.empty-state{text-align:center;padding:40px;color:var(--text3)}
+</style>
+</head>
+<body>
+
+<!-- Connection error banner -->
+<div id="conn-banner">
+  <span style="font-weight:600">&#9888; Cannot reach server.</span>
+  <span>Check that <code style="background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px">python app.py</code> is running, then update the address:</span>
+  <input id="server-url-input" type="text" placeholder="http://localhost:5050">
+  <button onclick="applyServerUrl()">Connect</button>
+  <span id="conn-hint" style="font-size:11px;opacity:.8"></span>
+</div>
+
+<div class="shell">
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-title">&#128737; NetWorker Remediation</div>
+    <div class="logo-sub">Backup Automation System</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Monitor</div>
+    <div class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')"><span class="ni">&#9632;</span>Dashboard</div>
+    <div class="nav-item" id="nav-tickets" onclick="showPage('tickets')"><span class="ni">&#9776;</span>All Tickets</div>
+    <div class="nav-item" id="nav-analytics" onclick="showPage('analytics');loadAnalytics()"><span class="ni">&#128200;</span>Analytics &amp; RCA</div>
+    <div class="nav-section">Manage</div>
+    <div class="nav-item" id="nav-import" onclick="showPage('import')"><span class="ni">&#8679;</span>Import Tickets</div>
+    <div class="nav-item" id="nav-add" onclick="showPage('add')"><span class="ni">&#43;</span>Add / Parse Ticket</div>
+    <div class="nav-item" id="nav-settings" onclick="showPage('settings');loadConfig()"><span class="ni">&#9881;</span>Settings</div>
+  </nav>
+  <div class="sidebar-foot">
+    <div style="display:flex;align-items:center;gap:4px;font-size:11px">
+      <span class="api-dot" id="api-dot"></span>
+      <span id="api-label">Connecting...</span>
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-top:3px;display:flex;align-items:center;gap:4px">
+      <span id="api-url-display" style="opacity:.8"></span>
+      <span onclick="promptServerChange()" style="cursor:pointer;color:var(--blue);font-size:10px">&#9998;</span>
+    </div>
+  </div>
+</aside>
+
+<div class="main">
+<div class="topbar">
+  <div class="page-title" id="page-title">Dashboard</div>
+  <div class="topbar-right">
+    <button class="btn" onclick="refreshAll()">&#8635; Refresh</button>
+    <button class="btn success" onclick="runAll()">&#9654; Run All New</button>
+    <button class="btn primary" onclick="showPage('import')">&#43; Import CSV</button>
+  </div>
+</div>
+<div class="content">
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="tab-pane active">
+  <div class="stats">
+    <div class="stat s-new"><div class="stat-lbl">New / Pending</div><div class="stat-val" id="cnt-new">—</div></div>
+    <div class="stat s-prog"><div class="stat-lbl">Running</div><div class="stat-val" id="cnt-prog">—</div></div>
+    <div class="stat s-ok"><div class="stat-lbl">Remediated</div><div class="stat-val" id="cnt-ok">—</div></div>
+    <div class="stat s-fail"><div class="stat-lbl">Failed / Unreachable</div><div class="stat-val" id="cnt-fail">—</div></div>
+  </div>
+  <div class="tcard">
+    <div class="ttoolbar"><span style="font-weight:600">Recent Activity</span><span style="flex:1"></span><button class="btn btn-sm" onclick="showPage('tickets')">View all &rarr;</button></div>
+    <table><thead><tr><th>Ticket</th><th>Client</th><th>OS</th><th>Status</th><th>Progress</th><th>Updated</th><th></th></tr></thead>
+    <tbody id="dash-tbody"></tbody></table>
+  </div>
+</div>
+
+<!-- ALL TICKETS -->
+<div id="page-tickets" class="tab-pane">
+  <div class="tcard" style="margin-bottom:14px">
+    <div class="ttoolbar">
+      <input type="text" id="search" placeholder="Search..." oninput="renderTickets()" style="padding:5px 9px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;width:180px;outline:none">
+      <select id="flt-s" onchange="renderTickets()" style="padding:5px 9px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;outline:none">
+        <option value="">All Status</option><option>New</option><option>Running</option><option>Remediated</option><option>Partial</option><option>Failed</option><option>Unreachable</option><option>Manual Required</option>
+      </select>
+      <select id="flt-os" onchange="renderTickets()" style="padding:5px 9px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;outline:none">
+        <option value="">All OS</option><option>Linux</option><option>Windows</option>
+      </select>
+      <span style="flex:1"></span>
+      <button class="btn btn-sm success" onclick="runAll()">&#9654; Run All New</button>
+    </div>
+    <table><thead><tr><th>Ticket</th><th>NW Server</th><th>Client</th><th>OS</th><th>Status</th><th>Steps</th><th>Updated</th><th>Actions</th></tr></thead>
+    <tbody id="tickets-tbody"></tbody></table>
+  </div>
+  <div id="det-wrap" style="display:none">
+    <div class="det-layout">
+      <div>
+        <div class="card">
+          <div class="card-hd">
+            <span class="card-title" id="d-title">—</span>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span id="d-ai-badge" class="ai-badge" style="display:none">&#129504; AI Planned</span>
+              <button class="btn btn-sm primary" id="d-run-btn" onclick="runSel()">&#9654; Run</button>
+              <button class="btn btn-sm" onclick="closeDet()">&#x2715;</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="ig">
+              <div class="ic"><div class="ik">NW Server</div><div class="iv" id="d-server">—</div></div>
+              <div class="ic"><div class="ik">Client</div><div class="iv" id="d-client">—</div></div>
+              <div class="ic"><div class="ik">OS</div><div class="iv" id="d-os">—</div></div>
+              <div class="ic"><div class="ik">Status</div><div class="iv" id="d-status">—</div></div>
+            </div>
+            <div id="d-ai-rationale" style="display:none;background:var(--purple-bg);color:var(--purple-txt);border-radius:var(--r);padding:9px 12px;font-size:11px;margin-bottom:12px;line-height:1.6"></div>
+            <div class="sec-title">Remediation Steps</div>
+            <div class="steps" id="d-steps"></div>
+          </div>
+        </div>
+        <div class="card" id="d-close-card" style="display:none">
+          <div class="card-hd"><span class="card-title">&#129504; AI Close Notes</span><button class="btn btn-sm" onclick="exportNotes()">&#8681; Export</button></div>
+          <div class="card-body"><pre class="close-box" id="d-close-box"></pre></div>
+        </div>
+        <div class="card" id="d-rdp-card" style="display:none">
+          <div class="card-hd"><span class="card-title">&#128187; RDP Work Order</span><button class="btn btn-sm" onclick="exportWorkorder()">&#8681; Export</button></div>
+          <div class="card-body"><pre class="workorder-box" id="d-rdp-box"></pre></div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">Live Log</span><button class="btn btn-sm" onclick="document.getElementById('log-box').innerHTML=''">Clear</button></div>
+          <div class="card-body" style="padding:8px"><div class="log-box" id="log-box"></div></div>
+        </div>
+        <div class="card" id="d-err-card" style="display:none">
+          <div class="card-hd"><span class="card-title">Original Error</span></div>
+          <div class="card-body"><p style="font-size:12px;color:var(--text2);line-height:1.7" id="d-err-text"></p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ANALYTICS -->
+<div id="page-analytics" class="tab-pane">
+  <div class="charts">
+    <div class="chart-card"><h3>Ticket status distribution</h3><div id="chart-status"></div></div>
+    <div class="chart-card"><h3>Root causes</h3><div id="chart-rc"></div></div>
+    <div class="chart-card"><h3>Daily ticket volume (last 14 days)</h3><div id="chart-daily"></div></div>
+    <div class="chart-card"><h3>OS distribution</h3><div id="chart-os"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">&#129504; AI Root Cause Analysis</span><button class="btn primary" onclick="runRCA()">&#9654; Run AI Analysis</button></div>
+    <div class="card-body" id="rca-body"><div style="text-align:center;padding:24px;color:var(--text3)">Click "Run AI Analysis" to identify patterns across all completed tickets.</div></div>
+  </div>
+</div>
+
+<!-- IMPORT -->
+<div id="page-import" class="tab-pane">
+  <div style="max-width:580px">
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Import from ServiceNow CSV</span><span class="ai-badge">&#129504; AI Parsed</span></div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.7">Upload your ServiceNow CSV export. GPT-4o will parse every ticket — extracting the NetWorker server, client hostname, error type, and OS from the free-text description automatically.</p>
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('csv-file').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+          <div style="font-size:32px;color:var(--text3)">&#128193;</div>
+          <div style="font-size:13px;font-weight:600;margin-top:8px">Drop CSV file here or click to browse</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">ServiceNow CSV export — any column layout accepted</div>
+        </div>
+        <input type="file" id="csv-file" accept=".csv" onchange="importCSV(this.files[0])">
+        <div id="import-result" style="margin-top:10px;font-size:12px;display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD / PARSE -->
+<div id="page-add" class="tab-pane">
+  <div style="max-width:620px">
+    <div class="card">
+      <div class="card-hd"><span class="card-title">&#129504; AI Ticket Parser</span></div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.7">Paste the ticket text below. GPT-4o extracts the NetWorker server, client, error, and OS automatically.</p>
+        <div class="ff full" style="margin-bottom:10px">
+          <label>Paste ticket text / description</label>
+          <textarea id="ai-raw" rows="7" placeholder="Paste your ServiceNow ticket description here...&#10;&#10;Example:&#10;INC0098721 - Backup failed for client app-srv-42.corp.com on NetWorker server nw-prod-01. nsrexecd not running. Last successful backup 3 days ago."></textarea>
+        </div>
+        <button class="btn primary" onclick="aiParse()">&#129504; Parse with AI</button>
+        <div id="parse-result" class="parse-preview"></div>
+        <div id="parse-actions" style="margin-top:12px;display:none">
+          <button class="btn success" onclick="addParsed()">&#43; Add Ticket</button>
+          <button class="btn" style="margin-left:8px" onclick="clearParse()">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Add manually</span></div>
+      <div class="card-body">
+        <div class="fg">
+          <div class="ff"><label>Ticket ID</label><input id="m-tid" placeholder="INC0098721"></div>
+          <div class="ff"><label>OS Type</label><select id="m-os"><option>Linux</option><option>Windows</option><option>Unknown</option></select></div>
+          <div class="ff"><label>NetWorker Server</label><input id="m-server" placeholder="nw-prod-01.corp.com"></div>
+          <div class="ff"><label>Client Hostname</label><input id="m-client" placeholder="app-srv-42.corp.com"></div>
+          <div class="ff full"><label>Error description (optional)</label><input id="m-err" placeholder="nsrexecd not running, backup failed at 2am..."></div>
+        </div>
+        <div style="margin-top:10px"><button class="btn primary" onclick="addManual()">&#43; Add Ticket</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="page-settings" class="tab-pane">
+  <div style="max-width:620px">
+
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Server connection</span></div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.7">The address of the machine running <code style="background:var(--surface2);padding:1px 5px;border-radius:3px">python app.py</code>. Use <code style="background:var(--surface2);padding:1px 5px;border-radius:3px">http://localhost:5050</code> if running on this machine, or <code style="background:var(--surface2);padding:1px 5px;border-radius:3px">http://YOUR-SERVER-IP:5050</code> if remote.</p>
+        <div class="fg">
+          <div class="ff full">
+            <label>API Server URL</label>
+            <input id="cfg-server-url" placeholder="http://localhost:5050">
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+          <button class="btn btn-sm primary" onclick="saveServerUrl()">Save &amp; Reconnect</button>
+          <span id="url-test-result" style="font-size:12px;display:none"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><span class="card-title">&#129504; Azure OpenAI</span></div>
+      <div class="card-body">
+        <div class="fg">
+          <div class="ff full"><label>Azure OpenAI Endpoint</label><input id="cfg-aoai-ep" placeholder="https://YOUR-RESOURCE.openai.azure.com/"></div>
+          <div class="ff full"><label>API Key</label><input id="cfg-aoai-key" type="password" placeholder="Your Azure OpenAI API key"></div>
+          <div class="ff"><label>Deployment Name</label><input id="cfg-aoai-dep" placeholder="gpt-4o"></div>
+          <div class="ff"><label>API Version</label><input id="cfg-aoai-ver" placeholder="2024-02-01"></div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+          <button class="btn btn-sm" onclick="testAI()">&#9654; Test AI Connection</button>
+          <span id="ai-test-result" style="font-size:12px;display:none"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Linux service account (SSH)</span></div>
+      <div class="card-body">
+        <div class="fg">
+          <div class="ff"><label>Username</label><input id="cfg-user" placeholder="svc_backup"></div>
+          <div class="ff"><label>Auth Method</label>
+            <select id="cfg-auth" onchange="toggleSSHFields()">
+              <option value="password">Password</option>
+              <option value="key_file">SSH Key File</option>
+              <option value="key_text">SSH Key Paste</option>
+              <option value="agent">SSH Agent (ssh-add)</option>
+              <option value="pam">PAM</option>
+              <option value="ldap">LDAP</option>
+              <option value="radius">RADIUS</option>
+              <option value="tacacs">TACACS+</option>
+            </select>
+          </div>
+          <div class="ff full" id="ssh-pass-field">
+            <label>Password</label>
+            <input id="cfg-pass" type="password" placeholder="Service account password">
+          </div>
+          <div class="ff full" id="ssh-keypath-field" style="display:none">
+            <label>Key file path</label><input id="cfg-keypath" placeholder="/home/svc_backup/.ssh/id_rsa">
+          </div>
+          <div class="ff full" id="ssh-keytext-field" style="display:none">
+            <label>SSH private key (paste)</label>
+            <textarea id="cfg-keytext" rows="5" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----" style="font-family:monospace;font-size:11px;resize:vertical"></textarea>
+          </div>
+          <div class="ff full" id="ssh-agent-info" style="display:none">
+            <div style="background:var(--blue-bg);color:var(--blue-txt);border-radius:var(--r);padding:10px 12px;font-size:12px">Run <code style="background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px">ssh-add ~/.ssh/id_rsa</code> on the server before starting the application.</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+          <button class="btn btn-sm" onclick="testSSH()">&#9654; Test SSH Connection</button>
+          <span id="ssh-test-result" style="font-size:12px;display:none"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Windows handling (RDP only)</span></div>
+      <div class="card-body">
+        <div style="background:var(--amber-bg);color:var(--amber-txt);border-radius:var(--r);padding:10px 12px;font-size:12px;line-height:1.7;margin-bottom:12px">
+          Windows clients use RDP with your PAM account — no automated SSH. The AI will generate a step-by-step RDP work order for each Windows ticket.
+        </div>
+        <div class="fg">
+          <div class="ff"><label>AD Domain (for RDP instructions)</label><input id="cfg-domain" placeholder="CORP"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><span class="card-title">NetWorker &amp; automation</span></div>
+      <div class="card-body">
+        <div class="fg">
+          <div class="ff full"><label>Retrigger Command <span style="font-size:9px;color:var(--text3);text-transform:none;letter-spacing:0">use {nw_server} and {client} as placeholders</span></label>
+            <input id="cfg-cmd" placeholder="nsrinfo -s {nw_server} -c {client} -v"></div>
+          <div class="ff"><label>Linux services to check <span style="font-size:9px;color:var(--text3);text-transform:none;letter-spacing:0">one per line</span></label>
+            <textarea id="cfg-lsvc" rows="3" placeholder="nsrexecd&#10;nsrd"></textarea></div>
+          <div class="ff"><label>Min free disk space (GB)</label><input id="cfg-disk" type="number" value="10" min="1"></div>
+          <div class="ff full" style="flex-direction:row;align-items:center;gap:10px">
+            <input type="checkbox" id="cfg-auto" style="width:16px;height:16px">
+            <label for="cfg-auto" style="font-size:12px;text-transform:none;letter-spacing:0;color:var(--text);font-weight:400">Auto-run pipeline when tickets are imported</label>
+          </div>
+          <div class="ff full" style="flex-direction:row;align-items:center;gap:10px">
+            <input type="checkbox" id="cfg-dry" style="width:16px;height:16px">
+            <label for="cfg-dry" style="font-size:12px;text-transform:none;letter-spacing:0;color:var(--text);font-weight:400">Dry run — skip actual backup retrigger</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn primary" onclick="saveConfig()">&#10003; Save Settings</button>
+      <span id="cfg-saved" style="font-size:12px;color:var(--green);display:none">&#10003; Saved</span>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+// ── Server URL — the single source of truth ───────────────────────────────────
+// Change this if your server runs on a different port or machine.
+// You can also change it via Settings → Server connection in the UI.
+const DEFAULT_SERVER = 'http://localhost:5050';
+
+function getServerUrl() {
+  return localStorage.getItem('nw_server_url') || DEFAULT_SERVER;
+}
+function setServerUrl(url) {
+  localStorage.setItem('nw_server_url', url.replace(/\/$/, ''));
+  document.getElementById('api-url-display').textContent = url.replace(/^https?:\/\//, '');
+  document.getElementById('cfg-server-url').value = url;
+  document.getElementById('server-url-input').value = url;
+}
+
+// ── API helper ────────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const url = getServerUrl() + path;
+  const res = await fetch(url, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// ── Connection state ──────────────────────────────────────────────────────────
+let connected = false;
+let allTickets = [];
+let selTid = null;
+let logPoll = null;
+let ticketPoll = null;
+let parsedTicket = null;
+let retryCount = 0;
+
+function setConnected(ok) {
+  connected = ok;
+  const dot = document.getElementById('api-dot');
+  const lbl = document.getElementById('api-label');
+  const banner = document.getElementById('conn-banner');
+  if (ok) {
+    dot.className = 'api-dot ok'; lbl.textContent = 'Connected';
+    banner.classList.remove('show'); retryCount = 0;
+  } else {
+    dot.className = 'api-dot err'; lbl.textContent = 'Offline';
+    banner.classList.add('show');
+    const hints = [
+      'Make sure python app.py is running',
+      'Try: netstat -ano | findstr :5050',
+      'Try a different port in Settings',
+      'Run terminal as Administrator',
+    ];
+    document.getElementById('conn-hint').textContent = hints[Math.min(retryCount, hints.length - 1)];
+    retryCount++;
+  }
+}
+
+function applyServerUrl() {
+  const val = document.getElementById('server-url-input').value.trim();
+  if (val) { setServerUrl(val); refreshAll(); }
+}
+
+function saveServerUrl() {
+  const val = document.getElementById('cfg-server-url').value.trim();
+  if (!val) return;
+  setServerUrl(val);
+  const el = document.getElementById('url-test-result');
+  el.style.display = 'inline'; el.style.color = 'var(--text3)'; el.textContent = 'Connecting...';
+  refreshAll().then(() => {
+    el.style.color = connected ? 'var(--green)' : 'var(--red)';
+    el.textContent = connected ? '&#10003; Connected' : '&#10007; Could not connect';
+    el.innerHTML = connected ? '&#10003; Connected' : '&#10007; Could not connect — check the address';
+  });
+}
+
+function promptServerChange() {
+  const url = prompt('Enter server URL:', getServerUrl());
+  if (url) { setServerUrl(url); refreshAll(); }
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, type = '') {
+  const w = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type; el.textContent = msg; w.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3200);
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+const PAGES = ['dashboard','tickets','analytics','import','add','settings'];
+const TITLES = {dashboard:'Dashboard',tickets:'All Tickets',analytics:'Analytics & Root Cause',import:'Import Tickets',add:'Add / Parse Ticket',settings:'Settings'};
+function showPage(name) {
+  PAGES.forEach(p => {
+    document.getElementById('page-' + p)?.classList.toggle('active', p === name);
+    document.getElementById('nav-' + p)?.classList.toggle('active', p === name);
+  });
+  document.getElementById('page-title').textContent = TITLES[name] || name;
+}
+
+// ── Status helpers ────────────────────────────────────────────────────────────
+function badge(s) {
+  const m = {New:'b-new',Running:'b-running',Remediated:'b-remediated',Partial:'b-partial',
+             Failed:'b-failed',Unreachable:'b-unreachable','Manual Required':'b-manual'};
+  return `<span class="badge ${m[s]||'b-new'}">${s}</span>`;
+}
+function osBadge(os) {
+  if (os === 'Windows') return `<span class="badge b-win">Windows</span>`;
+  if (os === 'Linux')   return `<span class="badge b-linux">Linux</span>`;
+  return `<span class="badge">${os||'?'}</span>`;
+}
+function pct(t) { return Math.round((t.steps_done||0) / Math.max(t.steps_plan?.length||7, 1) * 100); }
+function progColor(t) {
+  if (['Failed','Unreachable'].includes(t.status)) return 'var(--red)';
+  if (t.status === 'Remediated') return 'var(--green)';
+  if (t.status === 'Partial')    return 'var(--amber)';
+  if (t.status === 'Manual Required') return 'var(--purple)';
+  return 'var(--blue)';
+}
+
+// ── Refresh ───────────────────────────────────────────────────────────────────
+async function refreshAll() {
+  try {
+    allTickets = await api('/api/tickets');
+    setConnected(true);
+    renderStats(); renderDash(); renderTickets();
+    if (selTid) refreshDetail();
+  } catch (e) {
+    setConnected(false);
+  }
+}
+
+function renderStats() {
+  const c = {};
+  allTickets.forEach(t => { c[t.status] = (c[t.status]||0) + 1; });
+  document.getElementById('cnt-new').textContent  = c.New || 0;
+  document.getElementById('cnt-prog').textContent = c.Running || 0;
+  document.getElementById('cnt-ok').textContent   = (c.Remediated||0) + (c.Partial||0);
+  document.getElementById('cnt-fail').textContent = (c.Failed||0) + (c.Unreachable||0) + (c['Manual Required']||0);
+}
+
+function rowHtml(t, full) {
+  const p = pct(t);
+  return `<tr class="clickable${selTid===t.ticket_id?' sel':''}" onclick="selTicket('${t.ticket_id}')">
+    <td style="font-weight:600">${t.ticket_id}</td>
+    ${full ? `<td style="font-size:11px;color:var(--text2)">${t.nw_server||'—'}</td>` : ''}
+    <td style="font-size:11px">${t.client||'—'}</td>
+    <td>${osBadge(t.os_type)}</td>
+    <td>${badge(t.status)}</td>
+    <td style="min-width:90px"><div class="prog"><div class="prog-bar"><div class="prog-fill" style="width:${p}%;background:${progColor(t)}"></div></div><span style="font-size:10px;color:var(--text3)">${t.steps_done||0}</span></div></td>
+    <td style="font-size:11px;color:var(--text3)">${(t.updated||'').slice(0,16)}</td>
+    ${full ? `<td>
+      <button class="btn btn-sm ${['New','Failed'].includes(t.status)?'primary':''}" onclick="event.stopPropagation();${['New','Failed'].includes(t.status)?`runTick('${t.ticket_id}')`:``selTicket('${t.ticket_id}')}">${['New','Failed'].includes(t.status)?'&#9654; Run':'View'}</button>
+      <button class="btn btn-sm danger" style="margin-left:4px" onclick="event.stopPropagation();delTick('${t.ticket_id}')">&#x2715;</button>
+    </td>` : `<td><button class="btn btn-sm" onclick="selTicket('${t.ticket_id}');showPage('tickets')">View</button></td>`}
+  </tr>`;
+}
+
+function renderDash() {
+  const tbody = document.getElementById('dash-tbody');
+  const recent = [...allTickets].sort((a,b) => b.updated > a.updated ? 1 : -1).slice(0, 10);
+  if (!recent.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">No tickets yet — import a CSV or add one manually</div></td></tr>`; return; }
+  tbody.innerHTML = recent.map(t => rowHtml(t, false)).join('');
+}
+
+function renderTickets() {
+  const q  = document.getElementById('search').value.toLowerCase();
+  const fs = document.getElementById('flt-s').value;
+  const fo = document.getElementById('flt-os').value;
+  const rows = allTickets.filter(t => {
+    if (fs && t.status !== fs) return false;
+    if (fo && t.os_type !== fo) return false;
+    if (q && !`${t.ticket_id} ${t.nw_server} ${t.client}`.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const tbody = document.getElementById('tickets-tbody');
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state" style="padding:20px">No tickets match</div></td></tr>`; return; }
+  tbody.innerHTML = rows.map(t => rowHtml(t, true)).join('');
+}
+
+// ── Ticket detail ─────────────────────────────────────────────────────────────
+const STEP_META = {
+  reachability:'Reachability check', os_detect:'OS identification',
+  ssh_login:'Service account login', service_check:'Service health check',
+  disk_check:'Disk space check', retrigger:'Retrigger backup',
+  rdp_workorder:'RDP work order (Windows)',
+};
+
+function selTicket(tid) {
+  selTid = tid;
+  const t = allTickets.find(x => x.ticket_id === tid);
+  if (!t) return;
+  showPage('tickets');
+  document.getElementById('det-wrap').style.display = 'block';
+  document.getElementById('d-title').textContent = `${t.ticket_id} — ${t.client}`;
+  document.getElementById('d-server').textContent = t.nw_server || '—';
+  document.getElementById('d-client').textContent = t.client || '—';
+  document.getElementById('d-os').innerHTML = osBadge(t.os_type);
+  document.getElementById('d-status').innerHTML = badge(t.status);
+  document.getElementById('d-run-btn').style.display = ['New','Failed'].includes(t.status) ? 'inline-flex' : 'none';
+  document.getElementById('d-ai-badge').style.display = t.ai_plan?.ai_planned ? 'inline-flex' : 'none';
+  const rat = document.getElementById('d-ai-rationale');
+  if (t.ai_plan?.rationale) { rat.style.display = 'block'; rat.innerHTML = `&#129504; AI plan: <em>${t.ai_plan.rationale}</em>`; }
+  else { rat.style.display = 'none'; }
+  renderSteps(t); loadLog(tid); loadCloseNotes(t); loadRDP(t);
+  if (t.error_summary) {
+    document.getElementById('d-err-card').style.display = 'block';
+    document.getElementById('d-err-text').textContent = t.error_summary;
+  } else { document.getElementById('d-err-card').style.display = 'none'; }
+  if (t.status === 'Running') startPoll(tid);
+  renderTickets();
+}
+
+function refreshDetail() {
+  if (!selTid) return;
+  const t = allTickets.find(x => x.ticket_id === selTid);
+  if (!t) return;
+  document.getElementById('d-status').innerHTML = badge(t.status);
+  renderSteps(t); loadCloseNotes(t); loadRDP(t);
+  if (t.status !== 'Running') stopPoll();
+}
+
+function renderSteps(t) {
+  const el = document.getElementById('d-steps');
+  const plan = t.steps_plan || [];
+  const results = t.step_results || [];
+  const rm = {}; results.forEach(r => rm[r.step] = r);
+  const allSteps = [...new Set([...plan, ...results.map(r => r.step)])];
+  if (!allSteps.length) { el.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">Pipeline not started yet.</div>'; return; }
+  const isRunning = t.status === 'Running';
+  el.innerHTML = allSteps.map((sname, i) => {
+    const r = rm[sname];
+    const isCurrent = t.current_step === sname;
+    let rowCls = '', numCls = 'sn-pend', icon = String(i+1), note = 'Pending';
+    if (r) {
+      note = r.note || '';
+      if (r.status === 'PASS')   { rowCls = 'done';   numCls = 'sn-done';   icon = '&#10003;'; }
+      else if (['FAIL','ERROR'].includes(r.status)) { rowCls = 'fail'; numCls = 'sn-fail'; icon = '&#10007;'; }
+      else if (r.status === 'RED')    { rowCls = 'warn';   numCls = 'sn-warn';   icon = '&#9679;'; }
+      else if (r.status === 'SKIP')   { rowCls = 'skip'; }
+      else if (r.status === 'MANUAL') { rowCls = 'manual'; numCls = 'sn-manual'; icon = '&#128187;'; }
+    } else if (isCurrent && isRunning) { rowCls = 'active'; numCls = 'sn-active'; icon = '<span class="spin">&#9696;</span>'; }
+    return `<div class="step-row ${rowCls}"><div class="step-num ${numCls}">${icon}</div>
+      <div class="step-body"><div class="step-title">${STEP_META[sname]||sname}</div><div class="step-note">${escHtml(note)}</div></div></div>`;
+  }).join('');
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function loadLog(tid) {
+  try {
+    const logs = await api(`/api/tickets/${tid}/logs`);
+    const box = document.getElementById('log-box');
+    box.innerHTML = logs.map(l => {
+      let c = '';
+      if (l.includes('✓')||l.includes('PASS')||l.includes('complete')) c = 'ok';
+      else if (l.includes('✗')||l.includes('FAIL')||l.includes('ERROR')||l.includes('UNREACHABLE')) c = 'fail';
+      else if (l.includes('🔴')||l.includes('RED')||l.includes('restart')) c = 'warn';
+      else if (l.includes('AI:')||l.includes('Step')) c = 'info';
+      return `<div class="${c}">${escHtml(l)}</div>`;
+    }).join('');
+    box.scrollTop = box.scrollHeight;
+  } catch {}
+}
+
+async function loadCloseNotes(t) {
+  const card = document.getElementById('d-close-card');
+  if (!['Remediated','Partial','Failed','Unreachable','Manual Required'].includes(t.status)) { card.style.display = 'none'; return; }
+  try {
+    const r = await api(`/api/tickets/${t.ticket_id}/close-notes`);
+    card.style.display = 'block';
+    document.getElementById('d-close-box').textContent = r.close_notes || '';
+  } catch {}
+}
+
+async function loadRDP(t) {
+  const card = document.getElementById('d-rdp-card');
+  if (t.os_type !== 'Windows' && !t.rdp_workorder) { card.style.display = 'none'; return; }
+  try {
+    const r = await api(`/api/tickets/${t.ticket_id}/workorder`);
+    if (r.workorder && r.workorder !== 'Not generated yet.') {
+      card.style.display = 'block';
+      document.getElementById('d-rdp-box').textContent = r.workorder;
+    } else { card.style.display = 'none'; }
+  } catch {}
+}
+
+function closeDet() { selTid = null; document.getElementById('det-wrap').style.display = 'none'; stopPoll(); renderTickets(); }
+function exportNotes() { _dl(document.getElementById('d-close-box').textContent, `close_notes_${selTid}.txt`); }
+function exportWorkorder() { _dl(document.getElementById('d-rdp-box').textContent, `rdp_workorder_${selTid}.txt`); }
+function _dl(txt, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt],{type:'text/plain'})); a.download = name; a.click(); }
+
+function startPoll(tid) { stopPoll(); logPoll = setInterval(() => loadLog(tid), 1200); ticketPoll = setInterval(refreshAll, 2200); }
+function stopPoll()     { clearInterval(logPoll); clearInterval(ticketPoll); logPoll = null; ticketPoll = null; }
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+async function runTick(tid) {
+  try {
+    const r = await api(`/api/tickets/${tid}/run`, {method:'POST'});
+    if (r.error) { toast(r.error, 'err'); return; }
+    toast(`Started: ${tid}`, 'ok'); selTicket(tid); startPoll(tid); refreshAll();
+  } catch (e) { toast('Cannot reach server — check connection', 'err'); }
+}
+function runSel() { if (selTid) runTick(selTid); }
+async function runAll() {
+  try {
+    const r = await api('/api/run-all', {method:'POST'});
+    if (r.started?.length) toast(`Started ${r.started.length} ticket(s)`, 'ok');
+    else toast('No new tickets to run', 'warn');
+    refreshAll();
+  } catch (e) { toast('Cannot reach server', 'err'); }
+}
+async function delTick(tid) {
+  if (!confirm(`Delete ${tid}?`)) return;
+  await api(`/api/tickets/${tid}`, {method:'DELETE'});
+  if (selTid === tid) closeDet();
+  toast(`Deleted ${tid}`); refreshAll();
+}
+
+// ── AI Parse ──────────────────────────────────────────────────────────────────
+async function aiParse() {
+  const raw = document.getElementById('ai-raw').value.trim();
+  if (!raw) { toast('Paste some ticket text first', 'warn'); return; }
+  const btn = event.target; btn.disabled = true; btn.textContent = 'Parsing...';
+  try {
+    const r = await api('/api/tickets/ai-parse', {method:'POST', body:{raw_text:raw}});
+    parsedTicket = r;
+    const pr = document.getElementById('parse-result');
+    pr.style.display = 'block';
+    const cc = r.confidence === 'high' ? 'conf-high' : r.confidence === 'medium' ? 'conf-medium' : 'conf-low';
+    pr.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <strong style="font-size:12px">&#129504; AI extracted fields</strong>
+      <span class="${cc}" style="font-size:11px;font-weight:600">Confidence: ${r.confidence||'?'}</span></div>
+      ${fld('Ticket ID',r.ticket_id)}${fld('NetWorker Server',r.nw_server)}${fld('Client',r.client)}
+      ${fld('OS Type',r.os_type)}${fld('Error',r.error_summary)}${fld('Priority',r.priority)}
+      ${r.ai_parse_notes?`<div style="font-size:10px;color:var(--text3);margin-top:6px">${r.ai_parse_notes}</div>`:''}`;
+    document.getElementById('parse-actions').style.display = 'block';
+    if (r.confidence === 'low') toast('Low confidence — please verify fields', 'warn');
+    else toast('AI parsing complete', 'ok');
+  } catch (e) { toast('AI parse failed: ' + e, 'err'); }
+  btn.disabled = false; btn.innerHTML = '&#129504; Parse with AI';
+}
+function fld(k, v) { return v ? `<div class="parse-field"><div class="parse-key">${k}</div><div class="parse-val">${escHtml(v)}</div></div>` : ''; }
+async function addParsed() {
+  if (!parsedTicket) return;
+  const r = await api('/api/tickets', {method:'POST', body:{...parsedTicket, raw_text:document.getElementById('ai-raw').value}});
+  if (r.error) { toast(r.error, 'err'); return; }
+  toast(`Added ${r.ticket_id}`, 'ok'); clearParse(); showPage('tickets'); refreshAll();
+}
+function clearParse() { parsedTicket = null; document.getElementById('ai-raw').value = ''; document.getElementById('parse-result').style.display = 'none'; document.getElementById('parse-actions').style.display = 'none'; }
+
+async function addManual() {
+  const tid = document.getElementById('m-tid').value.trim();
+  const server = document.getElementById('m-server').value.trim();
+  const client = document.getElementById('m-client').value.trim();
+  const os = document.getElementById('m-os').value;
+  const err = document.getElementById('m-err').value.trim();
+  if (!tid || !server || !client) { toast('Fill in Ticket ID, Server, Client', 'warn'); return; }
+  const r = await api('/api/tickets', {method:'POST', body:{ticket_id:tid,nw_server:server,client,os_type:os,error_summary:err}});
+  if (r.error) { toast(r.error, 'err'); return; }
+  toast(`Added ${tid}`, 'ok');
+  ['m-tid','m-server','m-client','m-err'].forEach(id => document.getElementById(id).value = '');
+  showPage('tickets'); refreshAll();
+}
+
+// ── CSV Import ────────────────────────────────────────────────────────────────
+async function importCSV(file) {
+  if (!file) return;
+  const dz = document.getElementById('dropzone');
+  dz.innerHTML = '<div style="font-size:28px">&#129504;</div><div style="font-size:13px;font-weight:600;margin-top:6px">AI is parsing tickets...</div>';
+  try {
+    const fd = new FormData(); fd.append('file', file);
+    const res = await fetch(getServerUrl() + '/api/tickets/import-csv', {method:'POST', body:fd});
+    const data = await res.json();
+    if (data.error) { toast(data.error, 'err'); }
+    else {
+      toast(`Imported ${data.imported} tickets`, 'ok');
+      const el = document.getElementById('import-result');
+      el.style.display = 'block';
+      el.innerHTML = `<span style="color:var(--green);font-weight:600">&#10003; ${data.imported} ticket(s) imported and AI-parsed</span>`;
+      refreshAll(); setTimeout(() => showPage('tickets'), 1200);
+    }
+  } catch (e) { toast('Import failed — is the server running? ' + e, 'err'); }
+  dz.innerHTML = '<div style="font-size:32px;color:var(--text3)">&#128193;</div><div style="font-size:13px;font-weight:600;margin-top:8px">Drop CSV file here or click to browse</div><div style="font-size:11px;color:var(--text3);margin-top:4px">ServiceNow CSV export — any column layout accepted</div>';
+}
+function handleDrop(e) { e.preventDefault(); document.getElementById('dropzone').classList.remove('drag'); const f = e.dataTransfer.files[0]; if (f) importCSV(f); }
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+async function loadAnalytics() {
+  try {
+    const data = await api('/api/analytics');
+    renderBarChart('chart-status', data.statuses);
+    renderBarChart('chart-rc', data.root_causes);
+    renderBarChart('chart-os', data.os_types);
+    renderDailyChart('chart-daily', data.daily_counts);
+  } catch {}
+}
+function renderBarChart(id, obj) {
+  const el = document.getElementById(id); if (!el) return;
+  const entries = Object.entries(obj||{}).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  const max = Math.max(...entries.map(e => e[1]), 1);
+  const colors = {Remediated:'var(--green)',Failed:'var(--red)',Unreachable:'var(--red)',New:'var(--amber)',Running:'var(--blue)',Partial:'var(--amber)'};
+  el.innerHTML = entries.map(([k,v]) => `<div class="bar-row"><div class="bar-label" title="${k}">${k}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/max*100)}%;background:${colors[k]||'var(--blue)'}"></div></div><div class="bar-count">${v}</div></div>`).join('');
+}
+function renderDailyChart(id, obj) {
+  const el = document.getElementById(id); if (!el) return;
+  const entries = Object.entries(obj||{});
+  const max = Math.max(...entries.map(e => e[1]), 1);
+  el.innerHTML = entries.map(([k,v]) => `<div class="bar-row"><div class="bar-label">${k.slice(5)}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/max*100)}%;background:var(--blue)"></div></div><div class="bar-count">${v}</div></div>`).join('');
+}
+async function runRCA() {
+  const body = document.getElementById('rca-body');
+  body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3)">&#129504; AI is analysing ticket patterns...</div>';
+  try {
+    const r = await api('/api/analytics/rca', {method:'POST'});
+    if (r.error) { body.innerHTML = `<div style="color:var(--red-txt);padding:12px">${r.error}</div>`; return; }
+    let html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">`;
+    if (r.top_causes?.length) {
+      html += `<div><div class="sec-title">Top causes</div>`;
+      r.top_causes.forEach(c => { html += `<div style="padding:9px 11px;background:var(--surface2);border-radius:var(--r);margin-bottom:7px;font-size:12px"><div style="font-weight:600">${escHtml(c.cause)} <span style="color:var(--text3)">(${c.count}x)</span></div><div style="color:var(--text2);margin-top:3px">&#128161; ${escHtml(c.recommendation)}</div></div>`; });
+      html += `</div>`;
+    }
+    if (r.problem_clients?.length) {
+      html += `<div><div class="sec-title">Problem clients</div>`;
+      r.problem_clients.forEach(c => { html += `<div style="padding:9px 11px;background:var(--red-bg);border-radius:var(--r);margin-bottom:7px;font-size:12px"><div style="font-weight:600;color:var(--red-txt)">${escHtml(c.client)}</div><div style="color:var(--text2);margin-top:2px">${c.failure_count}x failures — ${escHtml(c.likely_cause)}</div></div>`; });
+      html += `</div>`;
+    }
+    html += `</div>`;
+    if (r.priority_actions?.length) {
+      html += `<div class="divider"></div><div class="sec-title">Priority actions</div><ol style="padding-left:18px;font-size:12px;color:var(--text2);line-height:1.9">`;
+      r.priority_actions.forEach(a => { html += `<li>${escHtml(a)}</li>`; });
+      html += `</ol>`;
+    }
+    if (r.predicted_reduction_pct) {
+      html += `<div style="margin-top:14px;padding:12px 14px;background:var(--green-bg);border-radius:var(--r);font-size:12px;color:var(--green-txt)"><strong>Predicted ticket reduction:</strong> ${r.predicted_reduction_pct}% if priority actions are implemented</div>`;
+    }
+    body.innerHTML = html;
+  } catch (e) { body.innerHTML = `<div style="color:var(--red-txt);padding:12px">RCA failed: ${e}</div>`; }
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+function toggleSSHFields() {
+  const m = document.getElementById('cfg-auth').value;
+  document.getElementById('ssh-pass-field').style.display    = ['password','pam','ldap','radius','tacacs','key_file'].includes(m) ? '' : 'none';
+  document.getElementById('ssh-keypath-field').style.display = m === 'key_file' ? '' : 'none';
+  document.getElementById('ssh-keytext-field').style.display = m === 'key_text' ? '' : 'none';
+  document.getElementById('ssh-agent-info').style.display    = m === 'agent'    ? '' : 'none';
+}
+async function loadConfig() {
+  try {
+    const cfg = await api('/api/config');
+    const gv = (id, key) => { const el = document.getElementById(id); if (el) el.value = cfg[key] || ''; };
+    const gc = (id, key) => { const el = document.getElementById(id); if (el) el.checked = !!cfg[key]; };
+    gv('cfg-aoai-ep','azure_openai_endpoint'); gv('cfg-aoai-dep','azure_openai_deployment'); gv('cfg-aoai-ver','azure_openai_api_version');
+    gv('cfg-user','linux_username'); gv('cfg-keypath','linux_key_path'); gv('cfg-domain','windows_rdp_domain');
+    gv('cfg-cmd','nw_retrigger_cmd'); gv('cfg-disk','min_disk_gb');
+    const am = document.getElementById('cfg-auth'); if (am) am.value = cfg.linux_auth_method || 'password';
+    const ls = document.getElementById('cfg-lsvc'); if (ls) ls.value = (cfg.linux_services||[]).join('\n');
+    gc('cfg-auto','auto_run_new'); gc('cfg-dry','dry_run');
+    if (cfg.azure_openai_api_key === '__saved__') { const el = document.getElementById('cfg-aoai-key'); if (el) el.placeholder = '(saved)'; }
+    if (cfg.linux_password === '__saved__') { const el = document.getElementById('cfg-pass'); if (el) el.placeholder = '(saved)'; }
+    if (cfg.linux_key_text === '__saved__') { const el = document.getElementById('cfg-keytext'); if (el) el.placeholder = '(saved)'; }
+    document.getElementById('cfg-server-url').value = getServerUrl();
+    toggleSSHFields();
+  } catch {}
+}
+async function saveConfig() {
+  const gv = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const gc = id => { const el = document.getElementById(id); return el ? el.checked : false; };
+  const cfg = {
+    azure_openai_endpoint:    gv('cfg-aoai-ep'),
+    azure_openai_deployment:  gv('cfg-aoai-dep'),
+    azure_openai_api_version: gv('cfg-aoai-ver'),
+    linux_username:           gv('cfg-user'),
+    linux_auth_method:        gv('cfg-auth'),
+    linux_key_path:           gv('cfg-keypath'),
+    linux_key_text:           document.getElementById('cfg-keytext')?.value?.trim() || '',
+    windows_rdp_domain:       gv('cfg-domain'),
+    nw_retrigger_cmd:         gv('cfg-cmd'),
+    min_disk_gb:              parseFloat(document.getElementById('cfg-disk')?.value) || 10,
+    auto_run_new:             gc('cfg-auto'),
+    dry_run:                  gc('cfg-dry'),
+    linux_services:           document.getElementById('cfg-lsvc')?.value.split('\n').map(s=>s.trim()).filter(Boolean) || [],
+  };
+  const apiKey = document.getElementById('cfg-aoai-key')?.value;
+  if (apiKey && apiKey !== '(saved)') cfg.azure_openai_api_key = apiKey;
+  const pass = document.getElementById('cfg-pass')?.value;
+  if (pass && pass !== '(saved)') cfg.linux_password = pass;
+  try {
+    await api('/api/config', {method:'POST', body:cfg});
+    const el = document.getElementById('cfg-saved'); el.style.display = 'inline';
+    setTimeout(() => el.style.display = 'none', 2500);
+    toast('Settings saved', 'ok');
+  } catch { toast('Could not save — check server connection', 'err'); }
+}
+async function testAI() {
+  const el = document.getElementById('ai-test-result');
+  el.style.display = 'inline'; el.style.color = 'var(--text3)'; el.textContent = 'Testing...';
+  await saveConfig();
+  try {
+    const r = await api('/api/test-ai', {method:'POST'});
+    el.style.color = r.ok ? 'var(--green)' : 'var(--red)';
+    el.textContent = (r.ok ? '✓ ' : '✗ ') + (r.message || r.error || '');
+  } catch (e) { el.style.color = 'var(--red)'; el.textContent = '✗ Cannot reach server'; }
+}
+async function testSSH() {
+  const el = document.getElementById('ssh-test-result');
+  el.style.display = 'inline'; el.style.color = 'var(--text3)'; el.textContent = 'Testing...';
+  await saveConfig();
+  try {
+    const r = await api('/api/test-connection', {method:'POST'});
+    el.style.color = r.ok ? 'var(--green)' : 'var(--red)';
+    el.textContent = (r.ok ? '✓ ' : '✗ ') + (r.message || r.error || '');
+  } catch (e) { el.style.color = 'var(--red)'; el.textContent = '✗ Cannot reach server'; }
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+setServerUrl(getServerUrl());
+document.getElementById('api-dot').className = 'api-dot warn';
+document.getElementById('api-label').textContent = 'Connecting...';
+refreshAll();
+setInterval(refreshAll, 6000);
+</script>
+</body>
+</html>
