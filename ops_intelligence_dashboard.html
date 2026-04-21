@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ops Intelligence — Command Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --ink:#0c0f1a;
+  --ink2:#141829;
+  --ink3:#1c2235;
+  --ink4:#232b42;
+  --line:rgba(255,255,255,0.07);
+  --line2:rgba(255,255,255,0.13);
+  --line3:rgba(255,255,255,0.22);
+  --ice:#e8f0ff;
+  --ice2:#c5d5f7;
+  --ice3:#8aaee8;
+  --mute:#5a6a8a;
+  --mute2:#7a8dac;
+  --mute3:#a0b0cc;
+  --electric:#2563eb;
+  --electric2:#3b7fff;
+  --electric3:#6fa3ff;
+  --emerald:#059669;
+  --emerald2:#10b981;
+  --emerald3:#6ee7b7;
+  --amber:#d97706;
+  --amber2:#f59e0b;
+  --amber3:#fcd34d;
+  --crimson:#dc2626;
+  --crimson2:#ef4444;
+  --crimson3:#fca5a5;
+  --violet:#7c3aed;
+  --violet2:#8b5cf6;
+  --violet3:#c4b5fd;
+  --teal:#0891b2;
+  --teal2:#06b6d4;
+  --teal3:#67e8f9;
+  --sans:'IBM Plex Sans',sans-serif;
+  --display:'Syne',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+}
+
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--sans);
+  background:var(--ink);
+  color:var(--ice);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* noise overlay */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:0.4;
+}
+
+/* ═══ TOPBAR ═══ */
+.topbar{
+  position:sticky;top:0;z-index:200;
+  height:56px;
+  background:rgba(12,15,26,0.92);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--line2);
+  display:flex;align-items:center;
+  padding:0 32px;gap:0;
+}
+.tb-brand{
+  display:flex;align-items:center;gap:12px;
+  margin-right:auto;
+}
+.tb-mark{
+  width:34px;height:34px;
+  background:var(--electric);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-size:13px;font-weight:800;
+  color:#fff;letter-spacing:-0.5px;
+  flex-shrink:0;
+}
+.tb-name{font-family:var(--display);font-size:15px;font-weight:700;letter-spacing:-0.4px;color:var(--ice)}
+.tb-divider{width:1px;height:16px;background:var(--line2);margin:0 10px}
+.tb-sub{font-size:11px;color:var(--mute2);font-weight:400;letter-spacing:0.2px}
+.tb-right{display:flex;align-items:center;gap:10px}
+.tb-pulse{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--mute2);
+  padding:0 12px;
+}
+.pulse-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--emerald2);
+  animation:glow 2s ease-in-out infinite;
+}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,0.5)}50%{box-shadow:0 0 0 5px rgba(16,185,129,0)}}
+.tb-upload-btn{
+  display:flex;align-items:center;gap:6px;
+  background:var(--electric);color:#fff;
+  border:none;border-radius:6px;
+  padding:7px 14px;
+  font-family:var(--sans);font-size:12px;font-weight:500;
+  cursor:pointer;transition:all 0.2s;letter-spacing:0.2px;
+}
+.tb-upload-btn:hover{background:var(--electric2);transform:translateY(-1px)}
+.tb-upload-btn svg{width:13px;height:13px;flex-shrink:0}
+
+/* ═══ LAYOUT ═══ */
+.shell{
+  display:grid;
+  grid-template-columns:220px 1fr;
+  min-height:calc(100vh - 56px);
+}
+
+/* ═══ SIDEBAR ═══ */
+.sidebar{
+  background:var(--ink2);
+  border-right:1px solid var(--line);
+  padding:24px 0;
+  position:sticky;top:56px;
+  height:calc(100vh - 56px);
+  overflow-y:auto;
+}
+.sb-section{
+  padding:0 16px 20px;
+}
+.sb-label{
+  font-size:9px;font-weight:600;
+  color:var(--mute);letter-spacing:1.5px;
+  text-transform:uppercase;
+  padding:0 8px 8px;
+}
+.sb-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;border-radius:8px;
+  font-size:12px;font-weight:500;color:var(--mute3);
+  cursor:pointer;transition:all 0.15s;
+  margin-bottom:2px;
+  text-decoration:none;
+}
+.sb-item:hover{background:var(--line);color:var(--ice)}
+.sb-item.active{background:rgba(37,99,235,0.15);color:var(--electric3);border:1px solid rgba(37,99,235,0.2)}
+.sb-item-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sb-sep{height:1px;background:var(--line);margin:8px 16px 20px}
+.sb-tracker{
+  margin:0 16px;padding:14px;
+  background:var(--ink3);border:1px solid var(--line);border-radius:10px;
+  margin-bottom:8px;cursor:pointer;transition:all 0.2s;
+  position:relative;overflow:hidden;
+}
+.sb-tracker:hover{border-color:var(--line2);transform:translateX(2px)}
+.sb-tracker.ready{border-color:rgba(16,185,129,0.3)}
+.sb-tracker-name{font-size:11px;font-weight:600;color:var(--ice2);margin-bottom:3px;font-family:var(--display)}
+.sb-tracker-stat{font-size:10px;color:var(--mute);font-family:var(--mono)}
+.sb-tracker-bar{
+  height:2px;background:var(--line);border-radius:1px;
+  margin-top:8px;overflow:hidden;
+}
+.sb-tracker-fill{height:100%;border-radius:1px;transition:width 1s}
+.sb-tracker input[type=file]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+}
+.sb-tracker.ready .sb-tracker-name::after{
+  content:'✓';color:var(--emerald2);margin-left:6px;font-size:10px;
+}
+
+/* ═══ MAIN CONTENT ═══ */
+.content{
+  padding:28px 32px;
+  position:relative;z-index:1;
+}
+
+/* ═══ PAGE HEADER ═══ */
+.page-header{
+  margin-bottom:28px;
+  display:flex;align-items:flex-start;justify-content:space-between;
+}
+.page-title{
+  font-family:var(--display);
+  font-size:26px;font-weight:800;
+  letter-spacing:-0.8px;color:var(--ice);
+  line-height:1.15;
+}
+.page-title span{color:var(--electric3)}
+.page-sub{font-size:13px;color:var(--mute2);margin-top:4px;font-weight:300}
+.page-date{
+  font-family:var(--mono);font-size:11px;color:var(--mute);
+  background:var(--ink3);border:1px solid var(--line);
+  border-radius:6px;padding:6px 12px;
+}
+
+/* ═══ UPLOAD ZONE ═══ */
+.upload-zone{
+  background:var(--ink2);
+  border:1px solid var(--line2);
+  border-radius:14px;
+  padding:24px;
+  margin-bottom:28px;
+  display:none;
+}
+.upload-zone.open{display:block;animation:slideIn 0.25s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.uz-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;
+}
+.uz-title{
+  font-family:var(--display);font-size:13px;font-weight:700;
+  color:var(--mute3);letter-spacing:0.3px;
+  display:flex;align-items:center;gap:8px;
+}
+.uz-close{
+  background:none;border:1px solid var(--line2);color:var(--mute);
+  width:26px;height:26px;border-radius:5px;cursor:pointer;
+  font-size:14px;display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;
+}
+.uz-close:hover{background:var(--line);color:var(--ice)}
+.upload-cards{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);gap:12px;
+}
+.uc{
+  background:var(--ink3);
+  border:1px dashed var(--line2);
+  border-radius:10px;padding:16px 12px;
+  text-align:center;cursor:pointer;
+  transition:all 0.2s;position:relative;overflow:hidden;
+}
+.uc:hover{border-color:var(--electric);background:rgba(37,99,235,0.05);transform:translateY(-2px)}
+.uc.ok{border-style:solid;border-color:var(--emerald2);background:rgba(16,185,129,0.05)}
+.uc input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.uc-icon{font-size:20px;margin-bottom:8px;display:block}
+.uc-name{font-family:var(--display);font-size:11px;font-weight:700;color:var(--ice2);margin-bottom:3px}
+.uc-hint{font-size:10px;color:var(--mute);font-family:var(--mono)}
+.uc.ok .uc-hint{color:var(--emerald3)}
+.uc-check{
+  position:absolute;top:6px;right:6px;
+  width:16px;height:16px;background:var(--emerald2);
+  border-radius:50%;display:none;
+  align-items:center;justify-content:center;
+  font-size:8px;color:var(--ink);font-weight:700;
+}
+.uc.ok .uc-check{display:flex}
+.uz-actions{
+  display:flex;align-items:center;gap:12px;margin-top:18px;
+}
+.uz-analyze{
+  background:linear-gradient(135deg,var(--electric),var(--violet2));
+  color:#fff;border:none;border-radius:8px;
+  padding:10px 22px;font-family:var(--display);
+  font-size:13px;font-weight:700;cursor:pointer;
+  transition:all 0.2s;letter-spacing:0.3px;
+  display:flex;align-items:center;gap:8px;
+}
+.uz-analyze:hover{opacity:0.9;transform:translateY(-1px);box-shadow:0 8px 28px rgba(37,99,235,0.3)}
+.uz-note{font-size:11px;color:var(--mute);font-family:var(--mono)}
+
+/* ═══ KPI STRIP ═══ */
+.kpi-strip{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:12px;
+  margin-bottom:24px;
+}
+.kpi{
+  background:var(--ink2);
+  border:1px solid var(--line);
+  border-radius:12px;padding:18px 16px;
+  position:relative;overflow:hidden;
+  transition:all 0.2s;
+}
+.kpi:hover{border-color:var(--line2);transform:translateY(-2px)}
+.kpi::after{
+  content:'';position:absolute;
+  bottom:0;left:0;right:0;height:2px;
+  border-radius:0 0 12px 12px;
+}
+.kpi.c-electric::after{background:linear-gradient(90deg,var(--electric),var(--teal2))}
+.kpi.c-crimson::after{background:linear-gradient(90deg,var(--crimson),var(--amber2))}
+.kpi.c-amber::after{background:linear-gradient(90deg,var(--amber2),#f97316)}
+.kpi.c-violet::after{background:linear-gradient(90deg,var(--violet2),var(--teal2))}
+.kpi.c-emerald::after{background:linear-gradient(90deg,var(--emerald2),var(--teal2))}
+.kpi-label{font-size:10px;font-weight:500;color:var(--mute2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px}
+.kpi-val{
+  font-family:var(--mono);font-size:32px;font-weight:500;
+  letter-spacing:-1.5px;line-height:1;
+  color:var(--ice);
+}
+.kpi-val.loading{color:var(--mute);font-size:20px;letter-spacing:0}
+.kpi-delta{
+  display:flex;align-items:center;gap:5px;
+  font-size:11px;margin-top:6px;
+  font-family:var(--mono);
+}
+.delta-up{color:var(--crimson3)}
+.delta-dn{color:var(--emerald3)}
+.delta-na{color:var(--mute)}
+
+/* ═══ GRID ═══ */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+.grid-7-5{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:20px}
+
+/* ═══ CARD ═══ */
+.card{
+  background:var(--ink2);
+  border:1px solid var(--line);
+  border-radius:12px;overflow:hidden;
+  transition:border-color 0.2s;
+}
+.card:hover{border-color:var(--line2)}
+.card-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px 0;
+}
+.card-title{
+  font-family:var(--display);font-size:12px;font-weight:700;
+  color:var(--ice2);letter-spacing:0.3px;text-transform:uppercase;
+}
+.card-body{padding:14px 18px 18px}
+.chip{
+  font-family:var(--mono);font-size:10px;font-weight:500;
+  padding:3px 8px;border-radius:4px;
+}
+.chip-blue{background:rgba(37,99,235,0.15);color:var(--electric3)}
+.chip-green{background:rgba(16,185,129,0.15);color:var(--emerald3)}
+.chip-amber{background:rgba(245,158,11,0.15);color:var(--amber3)}
+.chip-red{background:rgba(220,38,38,0.15);color:var(--crimson3)}
+.chip-violet{background:rgba(124,58,237,0.15);color:var(--violet3)}
+.chip-teal{background:rgba(6,182,212,0.15);color:var(--teal3)}
+
+/* ═══ AI PANEL ═══ */
+.ai-wrap{
+  background:var(--ink2);
+  border:1px solid var(--line2);
+  border-radius:12px;
+  overflow:hidden;
+  margin-bottom:20px;
+}
+.ai-bar{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 18px;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(90deg,rgba(37,99,235,0.05),transparent);
+}
+.ai-glyph{
+  width:30px;height:30px;
+  background:linear-gradient(135deg,var(--electric),var(--violet2));
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;
+}
+.ai-bar-title{font-family:var(--display);font-size:13px;font-weight:700;color:var(--ice)}
+.ai-bar-sub{font-size:11px;color:var(--mute2);margin-left:auto;font-family:var(--mono)}
+.ai-thread{
+  min-height:180px;max-height:340px;
+  overflow-y:auto;
+  padding:16px 18px;
+  display:flex;flex-direction:column;gap:14px;
+}
+.ai-thread::-webkit-scrollbar{width:3px}
+.ai-thread::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px}
+.msg-row{display:flex;gap:10px;animation:msgIn 0.25s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.msg-av{
+  width:28px;height:28px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px;
+}
+.msg-av.sys{background:linear-gradient(135deg,var(--electric),var(--violet2));color:#fff}
+.msg-av.usr{background:var(--ink4);color:var(--mute3);border:1px solid var(--line2)}
+.msg-content{}
+.msg-who{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mute);margin-bottom:4px}
+.msg-text{font-size:13px;color:var(--ice2);line-height:1.65;font-weight:300}
+.msg-text b{color:var(--ice);font-weight:600}
+.msg-text .mono{font-family:var(--mono);color:var(--electric3);font-size:12px}
+.msg-text .tag{
+  display:inline-block;
+  font-family:var(--mono);font-size:10px;
+  padding:1px 6px;border-radius:3px;
+  background:rgba(37,99,235,0.12);color:var(--electric3);
+  margin:0 1px;
+}
+.dot-typing span{
+  display:inline-block;width:5px;height:5px;
+  background:var(--electric3);border-radius:50%;
+  animation:dotBlink 1.2s infinite;margin-right:3px;
+}
+.dot-typing span:nth-child(2){animation-delay:0.2s}
+.dot-typing span:nth-child(3){animation-delay:0.4s}
+@keyframes dotBlink{0%,80%,100%{opacity:0.2}40%{opacity:1}}
+.quick-pills{
+  padding:8px 18px 12px;
+  display:flex;flex-wrap:wrap;gap:6px;
+}
+.qp{
+  background:var(--ink3);border:1px solid var(--line2);
+  color:var(--mute3);border-radius:20px;
+  padding:5px 12px;font-size:11px;font-family:var(--mono);
+  cursor:pointer;transition:all 0.15s;white-space:nowrap;
+}
+.qp:hover{border-color:var(--electric);color:var(--electric3);background:rgba(37,99,235,0.08)}
+.ai-input-bar{
+  display:flex;gap:10px;padding:12px 18px;
+  border-top:1px solid var(--line);
+}
+.ai-input{
+  flex:1;background:var(--ink3);
+  border:1px solid var(--line2);border-radius:8px;
+  padding:10px 14px;
+  font-family:var(--sans);font-size:13px;color:var(--ice);
+  outline:none;transition:border-color 0.2s;font-weight:300;
+}
+.ai-input:focus{border-color:var(--electric)}
+.ai-input::placeholder{color:var(--mute)}
+.ai-go{
+  background:var(--electric);color:#fff;
+  border:none;border-radius:8px;padding:0 20px;
+  font-family:var(--display);font-size:12px;font-weight:700;
+  cursor:pointer;transition:all 0.2s;letter-spacing:0.5px;
+  white-space:nowrap;
+}
+.ai-go:hover{background:var(--electric2)}
+
+/* ═══ TABLES ═══ */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{
+  font-size:9px;font-weight:700;color:var(--mute);
+  text-transform:uppercase;letter-spacing:1px;
+  padding:0 10px 10px;text-align:left;
+  border-bottom:1px solid var(--line2);
+}
+.tbl td{
+  font-size:12px;color:var(--mute3);
+  padding:9px 10px;
+  border-bottom:1px solid var(--line);
+  vertical-align:middle;font-weight:300;
+}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover td{background:rgba(255,255,255,0.015)}
+.pill{
+  display:inline-flex;align-items:center;
+  font-family:var(--mono);font-size:9px;font-weight:500;
+  padding:2px 7px;border-radius:3px;
+  text-transform:uppercase;letter-spacing:0.5px;
+}
+.p-open{background:rgba(37,99,235,0.15);color:var(--electric3)}
+.p-closed{background:rgba(16,185,129,0.15);color:var(--emerald3)}
+.p-pending{background:rgba(245,158,11,0.15);color:var(--amber3)}
+.p-high{background:rgba(220,38,38,0.15);color:var(--crimson3)}
+.p-critical{background:rgba(220,38,38,0.25);color:#fff}
+.p-med{background:rgba(245,158,11,0.12);color:var(--amber3)}
+.p-low{background:rgba(16,185,129,0.12);color:var(--emerald3)}
+.p-progress{background:rgba(6,182,212,0.15);color:var(--teal3)}
+.p-risk{background:rgba(245,158,11,0.15);color:var(--amber3)}
+.p-delayed{background:rgba(220,38,38,0.15);color:var(--crimson3)}
+
+/* ═══ BARS ═══ */
+.h-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.h-bar-label{font-size:11px;color:var(--mute2);width:100px;text-align:right;flex-shrink:0;font-family:var(--mono)}
+.h-bar-track{flex:1;height:6px;background:var(--ink4);border-radius:3px;overflow:hidden}
+.h-bar-fill{height:100%;border-radius:3px;transition:width 1.2s cubic-bezier(0.4,0,0.2,1)}
+.h-bar-val{font-family:var(--mono);font-size:11px;color:var(--mute2);min-width:20px}
+
+/* ═══ SPARK ═══ */
+.spark-row{display:flex;align-items:flex-end;gap:5px;height:56px}
+.spark-col{
+  flex:1;border-radius:3px 3px 0 0;
+  transition:height 0.9s cubic-bezier(0.4,0,0.2,1),opacity 0.2s;
+  cursor:pointer;min-height:3px;position:relative;
+}
+.spark-col:hover{opacity:0.75}
+.spark-col .spark-tip{
+  display:none;position:absolute;
+  bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);
+  background:var(--ink4);border:1px solid var(--line2);
+  font-family:var(--mono);font-size:9px;color:var(--ice);
+  padding:3px 6px;border-radius:4px;white-space:nowrap;z-index:10;
+}
+.spark-col:hover .spark-tip{display:block}
+.spark-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--mute);margin-top:5px;font-family:var(--mono)}
+
+/* ═══ DONUT ═══ */
+.donut-wrap{display:flex;align-items:center;gap:20px}
+.donut-legend{display:flex;flex-direction:column;gap:9px;flex:1}
+.legend-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--mute2)}
+.legend-sq{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.legend-n{margin-left:auto;font-family:var(--mono);font-weight:500;font-size:11px;color:var(--ice2)}
+
+/* ═══ PROGRESS ROWS ═══ */
+.prog-row{margin-bottom:14px}
+.prog-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.prog-name{font-size:12px;color:var(--ice2);font-weight:500}
+.prog-pct{font-family:var(--mono);font-size:11px;color:var(--mute2)}
+.prog-track{height:5px;background:var(--ink4);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width 1.2s}
+
+/* ═══ ACTIVITY FEED ═══ */
+.feed{display:flex;flex-direction:column}
+.feed-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);position:relative}
+.feed-item:last-child{border-bottom:none}
+.feed-node{
+  width:22px;height:22px;border-radius:5px;
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:10px;margin-top:1px;
+}
+.fn-change{background:rgba(37,99,235,0.2);color:var(--electric3)}
+.fn-risk{background:rgba(220,38,38,0.2);color:var(--crimson3)}
+.fn-issue{background:rgba(245,158,11,0.2);color:var(--amber3)}
+.fn-project{background:rgba(16,185,129,0.2);color:var(--emerald3)}
+.fn-escalation{background:rgba(124,58,237,0.2);color:var(--violet3)}
+.feed-body{flex:1;min-width:0}
+.feed-title{font-size:12px;color:var(--ice2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.feed-meta{font-size:10px;color:var(--mute);margin-top:2px;font-family:var(--mono)}
+
+/* ═══ EMPTY STATE ═══ */
+.empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:36px 20px;text-align:center;
+}
+.empty-icon{font-size:28px;opacity:0.25;margin-bottom:10px}
+.empty-txt{font-size:12px;color:var(--mute);line-height:1.6;font-weight:300}
+
+/* ═══ SECTION DIVIDER ═══ */
+.sec{
+  font-family:var(--display);font-size:10px;font-weight:700;
+  color:var(--mute);text-transform:uppercase;letter-spacing:1.5px;
+  display:flex;align-items:center;gap:12px;margin-bottom:14px;margin-top:4px;
+}
+.sec::after{content:'';flex:1;height:1px;background:var(--line)}
+
+/* ═══ ANIMATIONS ═══ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp 0.5s ease both}
+.fade-up-1{animation-delay:0.05s}
+.fade-up-2{animation-delay:0.1s}
+.fade-up-3{animation-delay:0.15s}
+.fade-up-4{animation-delay:0.2s}
+.fade-up-5{animation-delay:0.25s}
+
+/* ═══ SCROLLBAR ═══ */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="tb-brand">
+    <div class="tb-mark">OI</div>
+    <div class="tb-name">Ops Intelligence</div>
+    <div class="tb-divider"></div>
+    <div class="tb-sub">Unified Operations Dashboard</div>
+  </div>
+  <div class="tb-right">
+    <div class="tb-pulse">
+      <div class="pulse-dot" id="connDot" style="background:var(--mute)"></div>
+      <span id="connLabel">No data loaded</span>
+    </div>
+    <button class="tb-upload-btn" onclick="toggleUploadZone()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      Import Data
+    </button>
+  </div>
+</header>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Navigation</div>
+      <div class="sb-item active" onclick="scrollTo(0,0)">
+        <div class="sb-item-dot" style="background:var(--electric2)"></div>
+        Overview
+      </div>
+      <div class="sb-item" onclick="document.getElementById('sec-ai').scrollIntoView({behavior:'smooth'})">
+        <div class="sb-item-dot" style="background:var(--violet2)"></div>
+        AI Analysis
+      </div>
+      <div class="sb-item" onclick="document.getElementById('sec-trends').scrollIntoView({behavior:'smooth'})">
+        <div class="sb-item-dot" style="background:var(--teal2)"></div>
+        Trends
+      </div>
+      <div class="sb-item" onclick="document.getElementById('sec-trackers').scrollIntoView({behavior:'smooth'})">
+        <div class="sb-item-dot" style="background:var(--amber2)"></div>
+        Tracker Details
+      </div>
+    </div>
+
+    <div class="sb-sep"></div>
+
+    <div class="sb-section">
+      <div class="sb-label">Data Sources</div>
+
+      <div class="sb-tracker" id="sb-change">
+        <input type="file" accept=".csv,.xlsx,.xls" onchange="handleFile('change',this)">
+        <div class="sb-tracker-name" id="sbn-change">Change Tracker</div>
+        <div class="sb-tracker-stat" id="sbs-change">No data — click to import</div>
+        <div class="sb-tracker-bar"><div class="sb-tracker-fill" id="sbf-change" style="width:0%;background:var(--electric)"></div></div>
+      </div>
+
+      <div class="sb-tracker" id="sb-risk">
+        <input type="file" accept=".csv,.xlsx,.xls" onchange="handleFile('risk',this)">
+        <div class="sb-tracker-name" id="sbn-risk">Risk Tracker</div>
+        <div class="sb-tracker-stat" id="sbs-risk">No data — click to import</div>
+        <div class="sb-tracker-bar"><div class="sb-tracker-fill" id="sbf-risk" style="width:0%;background:var(--crimson2)"></div></div>
+      </div>
+
+      <div class="sb-tracker" id="sb-issue">
+        <input type="file" accept=".csv,.xlsx,.xls" onchange="handleFile('issue',this)">
+        <div class="sb-tracker-name" id="sbn-issue">Issue Tracker</div>
+        <div class="sb-tracker-stat" id="sbs-issue">No data — click to import</div>
+        <div class="sb-tracker-bar"><div class="sb-tracker-fill" id="sbf-issue" style="width:0%;background:var(--amber2)"></div></div>
+      </div>
+
+      <div class="sb-tracker" id="sb-escalation">
+        <input type="file" accept=".csv,.xlsx,.xls" onchange="handleFile('escalation',this)">
+        <div class="sb-tracker-name" id="sbn-escalation">Escalation Tracker</div>
+        <div class="sb-tracker-stat" id="sbs-escalation">No data — click to import</div>
+        <div class="sb-tracker-bar"><div class="sb-tracker-fill" id="sbf-escalation" style="width:0%;background:var(--violet2)"></div></div>
+      </div>
+
+      <div class="sb-tracker" id="sb-project">
+        <input type="file" accept=".csv,.xlsx,.xls" onchange="handleFile('project',this)">
+        <div class="sb-tracker-name" id="sbn-project">Project Tracker</div>
+        <div class="sb-tracker-stat" id="sbs-project">No data — click to import</div>
+        <div class="sb-tracker-bar"><div class="sb-tracker-fill" id="sbf-project" style="width:0%;background:var(--emerald2)"></div></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="content">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header fade-up">
+      <div>
+        <div class="page-title">Operations <span>Intelligence</span></div>
+        <div class="page-sub">Real-time visibility across all operational trackers</div>
+      </div>
+      <div class="page-date" id="pageDate"></div>
+    </div>
+
+    <!-- UPLOAD ZONE -->
+    <div class="upload-zone" id="uploadZone">
+      <div class="uz-header">
+        <div class="uz-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          Import Tracker Files
+          <span style="font-size:10px;font-weight:400;color:var(--mute);font-family:var(--mono)">CSV or XLSX</span>
+        </div>
+        <button class="uz-close" onclick="toggleUploadZone()">✕</button>
+      </div>
+      <div class="upload-cards">
+        <div class="uc" id="uc-change">
+          <input type="file" accept=".csv,.xlsx,.xls" onchange="handleFile('change',this)">
+          <div class="uc-check">✓</div>
+          <span class="uc-icon">📋</span>
+          <div class="uc-name">Change</div>
+          <div class="uc-hint" id="uch-change">Drop or click</div>
+        </div>
+        <div class="uc" id="uc-risk">
+          <input type="file" accept=".csv,.xlsx,.xls" onchange="handleFile('risk',this)">
+          <div class="uc-check">✓</div>
+          <span class="uc-icon">⚠️</span>
+          <div class="uc-name">Risk</div>
+          <div class="uc-hint" id="uch-risk">Drop or click</div>
+        </div>
+        <div class="uc" id="uc-issue">
+          <input type="file" accept=".csv,.xlsx,.xls" onchange="handleFile('issue',this)">
+          <div class="uc-check">✓</div>
+          <span class="uc-icon">🔴</span>
+          <div class="uc-name">Issue</div>
+          <div class="uc-hint" id="uch-issue">Drop or click</div>
+        </div>
+        <div class="uc" id="uc-escalation">
+          <input type="file" accept=".csv,.xlsx,.xls" onchange="handleFile('escalation',this)">
+          <div class="uc-check">✓</div>
+          <span class="uc-icon">🔺</span>
+          <div class="uc-name">Escalation</div>
+          <div class="uc-hint" id="uch-escalation">Drop or click</div>
+        </div>
+        <div class="uc" id="uc-project">
+          <input type="file" accept=".csv,.xlsx,.xls" onchange="handleFile('project',this)">
+          <div class="uc-check">✓</div>
+          <span class="uc-icon">🗂️</span>
+          <div class="uc-name">Project</div>
+          <div class="uc-hint" id="uch-project">Drop or click</div>
+        </div>
+      </div>
+      <div class="uz-actions">
+        <button class="uz-analyze" onclick="runAiAnalysis()">⚡ Analyse with AI</button>
+        <div class="uz-note" id="uzNote">Import at least one tracker to enable analysis</div>
+      </div>
+    </div>
+
+    <!-- KPI STRIP -->
+    <div class="sec fade-up fade-up-1">Overview</div>
+    <div class="kpi-strip fade-up fade-up-2">
+      <div class="kpi c-electric">
+        <div class="kpi-label">Total Changes</div>
+        <div class="kpi-val loading" id="kv-change">—</div>
+        <div class="kpi-delta delta-na" id="kd-change">awaiting data</div>
+      </div>
+      <div class="kpi c-crimson">
+        <div class="kpi-label">Open Risks</div>
+        <div class="kpi-val loading" id="kv-risk">—</div>
+        <div class="kpi-delta delta-na" id="kd-risk">awaiting data</div>
+      </div>
+      <div class="kpi c-amber">
+        <div class="kpi-label">Open Issues</div>
+        <div class="kpi-val loading" id="kv-issue">—</div>
+        <div class="kpi-delta delta-na" id="kd-issue">awaiting data</div>
+      </div>
+      <div class="kpi c-violet">
+        <div class="kpi-label">Escalations</div>
+        <div class="kpi-val loading" id="kv-escalation">—</div>
+        <div class="kpi-delta delta-na" id="kd-escalation">awaiting data</div>
+      </div>
+      <div class="kpi c-emerald">
+        <div class="kpi-label">On-Track Projects</div>
+        <div class="kpi-val loading" id="kv-project">—</div>
+        <div class="kpi-delta delta-na" id="kd-project">awaiting data</div>
+      </div>
+    </div>
+
+    <!-- AI PANEL -->
+    <div id="sec-ai"></div>
+    <div class="sec fade-up fade-up-3">AI Analysis</div>
+    <div class="ai-wrap fade-up fade-up-3">
+      <div class="ai-bar">
+        <div class="ai-glyph">✦</div>
+        <div>
+          <div class="ai-bar-title">Intelligent Query Engine</div>
+        </div>
+        <div class="ai-bar-sub" id="aiModel">Azure OpenAI · GPT-4o</div>
+      </div>
+      <div class="ai-thread" id="aiThread">
+        <div class="msg-row">
+          <div class="msg-av sys">✦</div>
+          <div class="msg-content">
+            <div class="msg-who">System</div>
+            <div class="msg-text">
+              Upload your tracker files using <span class="tag">Import Data</span> or the sidebar, then ask questions about your operational data. I can surface trends, pending items, completed work, risks by function, and executive summaries.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="quick-pills" id="quickPills">
+        <button class="qp" onclick="ask('What are the latest open issues?')">Latest open issues</button>
+        <button class="qp" onclick="ask('What is the issue trend over the past weeks?')">Issue weekly trend</button>
+        <button class="qp" onclick="ask('What are the pending escalations?')">Pending escalations</button>
+        <button class="qp" onclick="ask('What changes were completed this month?')">Completed changes</button>
+        <button class="qp" onclick="ask('Which function has the most open risks?')">Risks by function</button>
+        <button class="qp" onclick="ask('Give me an executive summary across all trackers.')">Executive summary</button>
+        <button class="qp" onclick="ask('What are the critical severity items across all trackers?')">Critical items</button>
+        <button class="qp" onclick="ask('Which projects are delayed or at risk?')">Project health</button>
+      </div>
+      <div class="ai-input-bar">
+        <input class="ai-input" id="aiInput" placeholder="Query your operational data…" onkeydown="if(event.key==='Enter')sendQuery()">
+        <button class="ai-go" onclick="sendQuery()">SEND ↗</button>
+      </div>
+    </div>
+
+    <!-- TRENDS -->
+    <div id="sec-trends"></div>
+    <div class="sec fade-up">Trends & Analytics</div>
+    <div class="grid-2 fade-up">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Issue Volume · 8-Week</div>
+          <span class="chip chip-amber" id="issueChip">No data</span>
+        </div>
+        <div class="card-body">
+          <div class="spark-row" id="issueSpark">
+            <div class="empty"><div class="empty-icon">📊</div><div class="empty-txt">Import issue tracker</div></div>
+          </div>
+          <div class="spark-labels" id="sparkLbls"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Risk Exposure · by Function</div>
+          <span class="chip chip-red" id="riskChip">No data</span>
+        </div>
+        <div class="card-body" id="riskBars">
+          <div class="empty"><div class="empty-icon">⚠️</div><div class="empty-txt">Import risk tracker</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2 fade-up">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Change Status · Breakdown</div>
+          <span class="chip chip-blue" id="changeChip">No data</span>
+        </div>
+        <div class="card-body">
+          <div id="changeDonut">
+            <div class="empty"><div class="empty-icon">📋</div><div class="empty-txt">Import change tracker</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Project Health · Status</div>
+          <span class="chip chip-green" id="projectChip">No data</span>
+        </div>
+        <div class="card-body" id="projectBars">
+          <div class="empty"><div class="empty-icon">🗂️</div><div class="empty-txt">Import project tracker</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRACKER DETAILS -->
+    <div id="sec-trackers"></div>
+    <div class="sec fade-up">Tracker Details</div>
+    <div class="grid-7-5 fade-up">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Issue Register</div>
+          <span class="chip chip-amber" id="issueCount">—</span>
+        </div>
+        <div class="card-body" id="issueTable">
+          <div class="empty"><div class="empty-icon">🔴</div><div class="empty-txt">Import issue tracker</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Escalations</div>
+          <span class="chip chip-violet" id="escalCount">—</span>
+        </div>
+        <div class="card-body" id="escalTable">
+          <div class="empty"><div class="empty-icon">🔺</div><div class="empty-txt">Import escalation tracker</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-7-5 fade-up">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Change Register</div>
+          <span class="chip chip-blue" id="changeCount">—</span>
+        </div>
+        <div class="card-body" id="changeTable">
+          <div class="empty"><div class="empty-icon">📋</div><div class="empty-txt">Import change tracker</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Recent Activity</div>
+          <span class="chip chip-teal" id="actCount">—</span>
+        </div>
+        <div class="card-body" id="actFeed">
+          <div class="empty"><div class="empty-icon">⚡</div><div class="empty-txt">Import any tracker</div></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+const S = {
+  data: { change:null, risk:null, issue:null, escalation:null, project:null },
+  loaded: new Set()
+};
+
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('pageDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+});
+
+// ══════════════════════════════════════════════════
+// UPLOAD ZONE
+// ══════════════════════════════════════════════════
+function toggleUploadZone() {
+  const z = document.getElementById('uploadZone');
+  z.classList.toggle('open');
+}
+
+// ══════════════════════════════════════════════════
+// FILE HANDLING
+// ══════════════════════════════════════════════════
+function handleFile(type, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = e => {
+    let rows = [];
+    try {
+      if (ext === 'csv') {
+        rows = Papa.parse(e.target.result, { header:true, skipEmptyLines:true }).data;
+      } else {
+        const wb = XLSX.read(e.target.result, { type:'binary' });
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:'' });
+      }
+    } catch(err) { alert('Could not parse file: ' + err.message); return; }
+
+    S.data[type] = rows;
+    S.loaded.add(type);
+    markLoaded(type, rows.length, file.name);
+    renderAll();
+  };
+  ext === 'csv' ? reader.readAsText(file) : reader.readAsBinaryString(file);
+}
+
+function markLoaded(type, count, filename) {
+  // sidebar
+  document.getElementById('sb-' + type).classList.add('ready');
+  document.getElementById('sbs-' + type).textContent = count + ' rows · ' + filename;
+  document.getElementById('sbf-' + type).style.width = '100%';
+  // upload card
+  const uc = document.getElementById('uc-' + type);
+  if (uc) { uc.classList.add('ok'); document.getElementById('uch-' + type).textContent = count + ' rows'; }
+  // conn status
+  const n = S.loaded.size;
+  document.getElementById('connDot').style.background = 'var(--emerald2)';
+  document.getElementById('connLabel').textContent = n + ' tracker' + (n>1?'s':'') + ' loaded';
+  document.getElementById('uzNote').textContent = n + ' of 5 trackers ready · ⚡ Analysis available';
+}
+
+// ══════════════════════════════════════════════════
+// RENDER ALL
+// ══════════════════════════════════════════════════
+function renderAll() {
+  renderKPIs();
+  renderIssueSpark();
+  renderRiskBars();
+  renderChangeDonut();
+  renderProjectBars();
+  renderIssueTable();
+  renderEscalTable();
+  renderChangeTable();
+  renderActivityFeed();
+}
+
+// ══════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════
+function colVal(row, ...keys) {
+  for (const k of keys) {
+    const found = Object.keys(row).find(rk => rk.toLowerCase().replace(/[\s_-]/g,'') === k.toLowerCase().replace(/[\s_-]/g,''));
+    if (found && row[found] !== '' && row[found] !== undefined) return String(row[found]).trim();
+  }
+  return '';
+}
+function statusClass(s) {
+  s = s.toLowerCase();
+  if (s.includes('complet') || s.includes('resolv') || s.includes('closed') || s.includes('done')) return 'p-closed';
+  if (s.includes('progress') || s.includes('active') || s.includes('open')) return 'p-open';
+  if (s.includes('pending') || s.includes('review') || s.includes('approv')) return 'p-pending';
+  if (s.includes('risk') || s.includes('amber')) return 'p-risk';
+  if (s.includes('delay') || s.includes('red')) return 'p-delayed';
+  return 'p-pending';
+}
+function severityClass(s) {
+  s = (s||'').toLowerCase();
+  if (s.includes('critical')) return 'p-critical';
+  if (s.includes('high')) return 'p-high';
+  if (s.includes('med')) return 'p-med';
+  return 'p-low';
+}
+
+// ══════════════════════════════════════════════════
+// KPIs
+// ══════════════════════════════════════════════════
+function renderKPIs() {
+  if (S.data.change) {
+    const total = S.data.change.length;
+    const comp = S.data.change.filter(r => colVal(r,'status').toLowerCase().includes('complet')).length;
+    setKPI('change', total, `${comp} completed · ${total-comp} active`, total > comp ? 'delta-up' : 'delta-dn');
+  }
+  if (S.data.risk) {
+    const open = S.data.risk.filter(r => !colVal(r,'status').toLowerCase().includes('mitigat') && !colVal(r,'status').toLowerCase().includes('closed')).length;
+    const crit = S.data.risk.filter(r => colVal(r,'severity','priority').toLowerCase().includes('critical')).length;
+    setKPI('risk', open, `${crit} critical severity`, crit > 0 ? 'delta-up' : 'delta-na');
+  }
+  if (S.data.issue) {
+    const open = S.data.issue.filter(r => !colVal(r,'status').toLowerCase().includes('resolv') && !colVal(r,'status').toLowerCase().includes('closed')).length;
+    setKPI('issue', open, `${S.data.issue.length - open} resolved`, open > 5 ? 'delta-up' : 'delta-dn');
+  }
+  if (S.data.escalation) {
+    const open = S.data.escalation.filter(r => !colVal(r,'status').toLowerCase().includes('resolv') && !colVal(r,'status').toLowerCase().includes('closed')).length;
+    setKPI('escalation', open, `${S.data.escalation.length} total`, open > 0 ? 'delta-up' : 'delta-dn');
+  }
+  if (S.data.project) {
+    const on = S.data.project.filter(r => { const s = colVal(r,'status','health').toLowerCase(); return s.includes('on track') || s.includes('green'); }).length;
+    setKPI('project', on, `${S.data.project.length - on} need attention`, on === S.data.project.length ? 'delta-dn' : 'delta-up');
+  }
+}
+function setKPI(type, val, sub, cls) {
+  const el = document.getElementById('kv-' + type);
+  el.textContent = val;
+  el.classList.remove('loading');
+  const d = document.getElementById('kd-' + type);
+  d.textContent = sub;
+  d.className = 'kpi-delta ' + cls;
+}
+
+// ══════════════════════════════════════════════════
+// ISSUE SPARKLINE
+// ══════════════════════════════════════════════════
+function renderIssueSpark() {
+  if (!S.data.issue) return;
+  const rows = S.data.issue;
+  // try to bucket by week key or date
+  const buckets = {};
+  const weekKeys = ['W1','W2','W3','W4','W5','W6','W7','W8'];
+  let useWeekField = false;
+  if (rows[0] && colVal(rows[0],'week','weekno','week_no')) useWeekField = true;
+
+  if (useWeekField) {
+    rows.forEach(r => {
+      const w = colVal(r,'week','weekno','week_no') || 'Unknown';
+      buckets[w] = (buckets[w]||0) + 1;
+    });
+  } else {
+    // bucket by date if available
+    rows.forEach((r,i) => {
+      const dateStr = colVal(r,'raised','date','created','raiseddate','createddate');
+      if (dateStr) {
+        const d = new Date(dateStr);
+        if (!isNaN(d)) {
+          const wk = 'W' + (Math.ceil((new Date() - d) / (7*24*3600*1000)));
+          buckets[wk] = (buckets[wk]||0) + 1;
+        } else {
+          const w = 'W' + (Math.ceil((i+1) / Math.max(1, Math.ceil(rows.length/8))));
+          buckets[w] = (buckets[w]||0) + 1;
+        }
+      } else {
+        const w = 'W' + (Math.ceil((i+1) / Math.max(1, Math.ceil(rows.length/8))));
+        buckets[w] = (buckets[w]||0) + 1;
+      }
+    });
+  }
+
+  // get last 8 weeks sorted
+  const keys = Object.keys(buckets).sort().slice(-8);
+  while(keys.length < 8) keys.unshift('—');
+  const vals = keys.map(k => buckets[k]||0);
+  const mx = Math.max(...vals, 1);
+  const total = vals.reduce((a,b)=>a+b,0);
+
+  document.getElementById('issueChip').textContent = total + ' total';
+
+  const spark = document.getElementById('issueSpark');
+  spark.innerHTML = '';
+  const colors = ['var(--amber3)','var(--amber2)','var(--crimson2)'];
+  vals.forEach((v, i) => {
+    const pct = Math.round((v / mx) * 100);
+    const col = v > mx * 0.7 ? colors[2] : v > mx * 0.4 ? colors[1] : colors[0];
+    const b = document.createElement('div');
+    b.className = 'spark-col';
+    b.style.cssText = `height:${Math.max(pct,5)}%;background:${col};opacity:${0.5 + 0.5*(v/mx)}`;
+    b.innerHTML = `<span class="spark-tip">${keys[i]}: ${v}</span>`;
+    spark.appendChild(b);
+  });
+
+  const lbls = document.getElementById('sparkLbls');
+  lbls.innerHTML = '';
+  [keys[0], keys[Math.floor(keys.length/2)], keys[keys.length-1]].forEach(k => {
+    const s = document.createElement('span'); s.textContent = k; lbls.appendChild(s);
+  });
+}
+
+// ══════════════════════════════════════════════════
+// RISK BARS
+// ══════════════════════════════════════════════════
+function renderRiskBars() {
+  if (!S.data.risk) return;
+  const counts = {};
+  S.data.risk.forEach(r => {
+    const fn = colVal(r,'function','area','department','team') || 'Other';
+    counts[fn] = (counts[fn]||0) + 1;
+  });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const mx = Math.max(...sorted.map(s=>s[1]), 1);
+  const total = S.data.risk.length;
+  document.getElementById('riskChip').textContent = total + ' total';
+  const colors = ['var(--crimson2)','var(--amber2)','var(--violet2)','var(--electric2)','var(--teal2)','var(--emerald2)'];
+  let html = '';
+  sorted.forEach(([fn,n],i) => {
+    const pct = Math.round((n/mx)*100);
+    html += `<div class="h-bar-row">
+      <div class="h-bar-label">${fn.length>14?fn.slice(0,13)+'…':fn}</div>
+      <div class="h-bar-track"><div class="h-bar-fill" style="width:${pct}%;background:${colors[i%colors.length]}"></div></div>
+      <div class="h-bar-val">${n}</div>
+    </div>`;
+  });
+  document.getElementById('riskBars').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════
+// CHANGE DONUT
+// ══════════════════════════════════════════════════
+function renderChangeDonut() {
+  if (!S.data.change) return;
+  const counts = {};
+  S.data.change.forEach(r => {
+    const s = colVal(r,'status') || 'Unknown';
+    counts[s] = (counts[s]||0) + 1;
+  });
+  const total = S.data.change.length;
+  document.getElementById('changeChip').textContent = total + ' total';
+  document.getElementById('changeCount').textContent = total + ' records';
+
+  const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const colors = ['var(--emerald2)','var(--electric2)','var(--amber2)','var(--crimson2)','var(--violet2)','var(--teal2)'];
+
+  let offset = 0;
+  const r = 44, cx = 56, cy = 56, stroke = 18;
+  const circ = 2 * Math.PI * r;
+  let paths = '';
+  entries.forEach(([s,n],i) => {
+    const frac = n / total;
+    const dash = frac * circ;
+    const gap = circ - dash;
+    paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${colors[i%colors.length]}" stroke-width="${stroke}" stroke-dasharray="${dash.toFixed(2)} ${gap.toFixed(2)}" stroke-dashoffset="${-offset.toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    offset += dash;
+  });
+
+  let legend = '';
+  entries.forEach(([s,n],i) => {
+    legend += `<div class="legend-row"><div class="legend-sq" style="background:${colors[i%colors.length]}"></div>${s}<div class="legend-n">${n}</div></div>`;
+  });
+
+  document.getElementById('changeDonut').innerHTML = `
+    <div class="donut-wrap">
+      <svg width="112" height="112" viewBox="0 0 112 112">${paths}</svg>
+      <div class="donut-legend">${legend}</div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════
+// PROJECT BARS
+// ══════════════════════════════════════════════════
+function renderProjectBars() {
+  if (!S.data.project) return;
+  const rows = S.data.project;
+  document.getElementById('projectChip').textContent = rows.length + ' projects';
+  let html = '';
+  rows.slice(0,6).forEach(r => {
+    const name = colVal(r,'name','projectname','project','title') || 'Unnamed';
+    const pct = parseInt(colVal(r,'completion','progress','percent','complete','pct')) || 0;
+    const health = colVal(r,'health','status') || '';
+    const col = health.toLowerCase().includes('green') || health.toLowerCase().includes('on track') ? 'var(--emerald2)'
+      : health.toLowerCase().includes('amber') || health.toLowerCase().includes('risk') ? 'var(--amber2)'
+      : health.toLowerCase().includes('red') || health.toLowerCase().includes('delay') ? 'var(--crimson2)'
+      : 'var(--electric2)';
+    html += `<div class="prog-row">
+      <div class="prog-top">
+        <div class="prog-name">${name.length > 28 ? name.slice(0,27)+'…' : name}</div>
+        <div class="prog-pct">${pct}%</div>
+      </div>
+      <div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${col}"></div></div>
+    </div>`;
+  });
+  document.getElementById('projectBars').innerHTML = html || '<div class="empty"><div class="empty-icon">🗂️</div><div class="empty-txt">No project data</div></div>';
+}
+
+// ══════════════════════════════════════════════════
+// ISSUE TABLE
+// ══════════════════════════════════════════════════
+function renderIssueTable() {
+  if (!S.data.issue) return;
+  const rows = S.data.issue.slice(0, 10);
+  document.getElementById('issueCount').textContent = S.data.issue.length + ' items';
+  let html = `<table class="tbl"><thead><tr><th>ID</th><th>Description</th><th>Function</th><th>Severity</th><th>Status</th></tr></thead><tbody>`;
+  rows.forEach(r => {
+    const id = colVal(r,'id','issueid','issue_id','no','number') || '—';
+    const desc = colVal(r,'description','title','summary','issue','detail') || '—';
+    const fn = colVal(r,'function','area','department','team') || '—';
+    const sev = colVal(r,'severity','priority') || '—';
+    const st = colVal(r,'status') || '—';
+    html += `<tr><td><span class="pill p-open" style="font-size:8px">${id}</span></td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${desc}</td>
+      <td>${fn}</td>
+      <td><span class="pill ${severityClass(sev)}">${sev}</span></td>
+      <td><span class="pill ${statusClass(st)}">${st}</span></td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('issueTable').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════
+// ESCALATION TABLE
+// ══════════════════════════════════════════════════
+function renderEscalTable() {
+  if (!S.data.escalation) return;
+  const rows = S.data.escalation.slice(0,8);
+  document.getElementById('escalCount').textContent = S.data.escalation.length + ' items';
+  let html = `<table class="tbl"><thead><tr><th>ID</th><th>Description</th><th>Priority</th><th>Status</th></tr></thead><tbody>`;
+  rows.forEach(r => {
+    const id = colVal(r,'id','escalationid','no') || '—';
+    const desc = colVal(r,'description','title','summary','issue') || '—';
+    const pri = colVal(r,'priority','severity') || '—';
+    const st = colVal(r,'status') || '—';
+    html += `<tr><td><span class="pill p-open" style="font-size:8px">${id}</span></td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${desc}</td>
+      <td><span class="pill ${severityClass(pri)}">${pri}</span></td>
+      <td><span class="pill ${statusClass(st)}">${st}</span></td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('escalTable').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════
+// CHANGE TABLE
+// ══════════════════════════════════════════════════
+function renderChangeTable() {
+  if (!S.data.change) return;
+  const rows = S.data.change.slice(0,10);
+  let html = `<table class="tbl"><thead><tr><th>ID</th><th>Description</th><th>Function</th><th>Type</th><th>Status</th></tr></thead><tbody>`;
+  rows.forEach(r => {
+    const id = colVal(r,'id','changeid','change_id','no','number') || '—';
+    const desc = colVal(r,'description','title','summary','change','detail') || '—';
+    const fn = colVal(r,'function','area','department') || '—';
+    const tp = colVal(r,'type','changetype','change_type') || '—';
+    const st = colVal(r,'status') || '—';
+    html += `<tr><td><span class="pill p-open" style="font-size:8px">${id}</span></td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${desc}</td>
+      <td>${fn}</td>
+      <td><span class="chip chip-blue" style="font-size:9px">${tp}</span></td>
+      <td><span class="pill ${statusClass(st)}">${st}</span></td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('changeTable').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════
+// ACTIVITY FEED
+// ══════════════════════════════════════════════════
+function renderActivityFeed() {
+  const items = [];
+  const push = (type, cls, icon, rows) => {
+    if (!rows) return;
+    rows.slice(0,3).forEach(r => {
+      const desc = colVal(r,'description','title','summary','name','issue','change') || '—';
+      const st = colVal(r,'status') || '';
+      const fn = colVal(r,'function','area','department') || '';
+      items.push({ type, cls, icon, desc, st, fn });
+    });
+  };
+  push('issue','fn-issue','●', S.data.issue);
+  push('escalation','fn-escalation','▲', S.data.escalation);
+  push('change','fn-change','◆', S.data.change);
+  push('risk','fn-risk','⚠', S.data.risk);
+  push('project','fn-project','▶', S.data.project);
+
+  if (!items.length) return;
+  document.getElementById('actCount').textContent = items.length + ' items';
+
+  let html = '<div class="feed">';
+  items.slice(0,10).forEach(it => {
+    html += `<div class="feed-item">
+      <div class="feed-node ${it.cls}">${it.icon}</div>
+      <div class="feed-body">
+        <div class="feed-title">${it.desc.length>55?it.desc.slice(0,54)+'…':it.desc}</div>
+        <div class="feed-meta">${it.type.toUpperCase()}${it.fn?' · '+it.fn:''}${it.st?' · '+it.st:''}</div>
+      </div></div>`;
+  });
+  html += '</div>';
+  document.getElementById('actFeed').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════
+// AI QUERY ENGINE
+// ══════════════════════════════════════════════════
+function buildContext() {
+  const parts = [];
+  const summarise = (name, rows) => {
+    if (!rows) return;
+    const cols = Object.keys(rows[0] || {});
+    const sample = rows.slice(0,30).map(r => Object.values(r).join(' | ')).join('\n');
+    parts.push(`=== ${name} (${rows.length} records) ===\nColumns: ${cols.join(', ')}\n${sample}`);
+  };
+  summarise('CHANGE TRACKER', S.data.change);
+  summarise('RISK TRACKER', S.data.risk);
+  summarise('ISSUE TRACKER', S.data.issue);
+  summarise('ESCALATION TRACKER', S.data.escalation);
+  summarise('PROJECT TRACKER', S.data.project);
+  return parts.join('\n\n');
+}
+
+function addMsg(who, html) {
+  const thread = document.getElementById('aiThread');
+  const isAI = who === 'sys';
+  const div = document.createElement('div');
+  div.className = 'msg-row';
+  div.innerHTML = `
+    <div class="msg-av ${isAI?'sys':'usr'}">${isAI?'✦':'You'}</div>
+    <div class="msg-content">
+      <div class="msg-who">${isAI?'Intelligence Engine':'Query'}</div>
+      <div class="msg-text">${html}</div>
+    </div>`;
+  thread.appendChild(div);
+  thread.scrollTop = thread.scrollHeight;
+  return div;
+}
+
+function ask(q) {
+  document.getElementById('aiInput').value = q;
+  sendQuery();
+}
+
+// ══════════════════════════════════════════════════
+// AI backend is handled by main.py (Python/FastAPI)
+// Configure credentials in .env — not here.
+// ══════════════════════════════════════════════════
+
+async function sendQuery() {
+  const input = document.getElementById('aiInput');
+  const q = input.value.trim();
+  if (!q) return;
+  input.value = '';
+
+  if (S.loaded.size === 0) {
+    addMsg('sys', 'No tracker data loaded yet. Please import at least one tracker file to begin querying.');
+    return;
+  }
+
+  addMsg('usr', q);
+  const typing = addMsg('sys', '<div class="dot-typing"><span></span><span></span><span></span></div>');
+
+  const context = buildContext();
+  const systemPrompt = `You are an intelligent operations analytics engine embedded in an enterprise dashboard.
+You have access to operational tracker data. Answer the user's question concisely, professionally, and with precision.
+Use **bold** markdown for key numbers and entities. Highlight tracker names in UPPERCASE.
+Keep responses under 200 words. Be direct — no preamble. Surface the most important insight first.
+If the data doesn't contain what's needed, say so clearly.`;
+
+  try {
+    const res = await fetch('/api/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q, context: context })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.detail || err?.error || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const txt = data.answer || 'No response received.';
+
+    // Convert **bold** markdown to <b> tags for display
+    const html = txt
+      .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+      .replace(/\n/g, '<br>');
+
+    typing.querySelector('.msg-text').innerHTML = html;
+  } catch(err) {
+    typing.querySelector('.msg-text').innerHTML =
+      `<b>Azure OpenAI error:</b> ${err.message}. Check your endpoint, API key, and deployment name in <span class="tag">AZURE_CONFIG</span>.`;
+  }
+
+  document.getElementById('aiThread').scrollTop = document.getElementById('aiThread').scrollHeight;
+}
+
+function runAiAnalysis() {
+  ask('Give me a concise executive summary of all loaded trackers — highlight critical items, top risks, open issues, and any immediate actions required.');
+}
+</script>
+</body>
+</html>
